@@ -6,11 +6,6 @@ import java.util.Random;
 public class GridGenerator {
 	Random rand = new Random();
 	
-	public static void main(String [] args) {
-		GridGenerator gg = new GridGenerator();
-		gg.generateGridModel(20, "/home/jp/research/grid_high/", 1.0, 5, false);
-	}
-	
 	public void generateGridModel(int size, String outputFolder, double field, double strength, boolean mixed){
 		String outputPath = outputFolder+"grid_"+(mixed?"mixed":"attractive")+"_n"+size+"_c"+strength+"_f"+field+".uai";
 		String evidPath = outputPath + ".evid";

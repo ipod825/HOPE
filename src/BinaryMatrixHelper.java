@@ -2,43 +2,6 @@ import java.util.Random;
 
 
 public class BinaryMatrixHelper {
-	public static void main(String [] args) {
-		boolean[][] parity = BinaryMatrixHelper.getRandomMatrix(5, 10);
-		boolean[][] gen = BinaryMatrixHelper.parityToGenerator(parity);
-		boolean[] vec = new boolean[10];
-		for(int i=0;i<10;i++){
-			vec[i] = gen[0][i];
-		}
-		boolean[] r = BinaryMatrixHelper.multiply(parity, vec);
-		BinaryMatrixHelper.printVector(r);
-//		boolean[][] matrix;// =  BinaryMatrixHelper.getFullRankRegularMatrix(4);
-//		BinaryMatrixHelper.printMatrix(matrix);
-//		System.out.println(BinaryMatrixHelper.gaussJordanElimination(matrix));
-//		boolean[][] matrix = getRandomMatrix(10,10);
-//		printMatrix(matrix);
-//		System.out.println("now eliminate...");
-//		System.out.println("nonzero entries:"+nonsparsity(matrix));
-//		System.out.println("now get a random full rank matrix...");
-//		matrix = getFullRankMatrix(6);
-//		matrix = BinaryMatrixHelper.copyMatrix(matrix,4);
-//		boolean[] offset = BinaryMatrixHelper.getRandomVector(4);
-//		boolean[] sol = BinaryMatrixHelper.findFullSolution(offset, BinaryMatrixHelper.transpose(matrix));
-//		BinaryMatrixHelper.printMatrix(matrix);
-//		BinaryMatrixHelper.printVector(offset);
-//		BinaryMatrixHelper.printVector(sol);
-//		printMatrix(matrix);
-//		boolean[][] m=transpose(new boolean[][]{{true,false,true},{false,true,true},{false,false,true},{false,false,true}});
-//		boolean[][] m1=transpose(new boolean[][]{{true,false,false},{false,true,false},{false,false,false},{false,false,true}});
-//		boolean[] off=new boolean[]{true,false,true,false};
-//		boolean[] x=new boolean[]{true,true,false,false};
-//		boolean[] x1=new boolean[]{true,true,false,true};
-//		System.out.println("is x in m range:"+isXInRange(x,m,off));
-//		System.out.println("is x1 in m range:"+isXInRange(x1,m,off));
-//		System.out.println("is x in m1 range:"+isXInRange(x,m1,off));
-//		System.out.println("is x in m range:"+findSolution(addVector(x,off),m));
-//		System.out.println("is x1 in m range:"+findSolution(addVector(x1,off),m));
-//		System.out.println("is x in m1 range:"+findSolution(addVector(x,off),m1));
-	}
 	
 	public static boolean[] multiply(boolean[][] matrix, boolean[] vector){
 		if(matrix == null || vector == null){

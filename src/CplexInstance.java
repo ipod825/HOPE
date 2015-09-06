@@ -11,7 +11,6 @@ import org.apache.commons.exec.PumpStreamHandler;
 public class CplexInstance extends Instance{
 	private int mNumVars=0;
 	private double mOptValue=0;
-//	public static int seed = 14;
 	public CplexInstance(String path, InstanceParams params) {
 		super(path, params);
 		// TODO Auto-generated constructor stub
@@ -39,7 +38,6 @@ public class CplexInstance extends Instance{
 	} 
 	
 	public void callCplex(String path, int timeout, int m, boolean[][] matrix, CplexOutput cpo, boolean elim){
-		// cplex usage example: timeout %d ./WH_cplex -paritylevel 1 -number %d -seed 10 -matrix %s %s
 		String matrixStr = convertMatrixToString(matrix);
 		
 		CommandLine cl = new CommandLine(Config.pathToCplex);
@@ -49,8 +47,6 @@ public class CplexInstance extends Instance{
 		cl.addArgument(""+timeout);
 		cl.addArgument("-number");
 		cl.addArgument(""+m);
-//		cl.addArgument("-seed");
-//		cl.addArgument(""+seed);
 		if(!elim){
 			cl.addArgument("-skipelim");
 		}
@@ -127,26 +123,6 @@ public class CplexInstance extends Instance{
 			m=numVars-this.mReducedDim;
 			elim=true;
 		}
-//		else if(this.mParams.is63()){
-//			try {
-//				matrix=IregLDPC.getMatrix();
-//			} catch (IOException e) {
-//				// TODO Auto-generated catch block
-//				e.printStackTrace();
-//			}
-//			BinaryMatrixHelper.printMatrix(matrix);
-//			m=numVars-this.mReducedDim;
-//			elim=false;
-//		}else if(this.mParams.isIrregular()){
-//			try {
-//				matrix=IregLDPC.getMatrix();
-//			} catch (IOException e) {
-//				// TODO Auto-generated catch block
-//				e.printStackTrace();
-//			}
-//			m=numVars-this.mReducedDim;
-//			elim=false;
-//		}
 		else if(this.mParams.isRegularlySparse()){
 			m=numVars-this.mReducedDim;
 			matrix = LDPCTools.getRegularSparseMatrix(numVars, m);//;LDPCTools.getPEGMatrix(numVars, m, false);

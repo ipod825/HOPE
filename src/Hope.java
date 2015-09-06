@@ -10,12 +10,8 @@ public class Hope {
 	  try {
 		Hope hope = new Hope();
 		long start = new Date().getTime();
-//		RunParams params = new RunParams(true, 30, 1, ConstraintType.UNCONSTRAINED,
-//				CodeType.PEG, SolverType.LS);
 		RunParams params = new RunParams(true, 30, ConstraintType.PARITY_CONSTRAINED,
 				CodeType.PEG, SolverType.CPLEX);
-//		RunParams params = new RunParams(true, 30, 1, ConstraintType.GO_WITH_THE_BEST,
-//				CodeType.PEG, SolverType.BY_CONSTRAINTS);
 		double est = hope.fastRun(testpath, 7, params);
 		long end = new Date().getTime();
 		System.out.println("time:"+(end-start)/1000);

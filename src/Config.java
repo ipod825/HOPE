@@ -1,7 +1,6 @@
 
 public class Config {
 	public static final String pathToWISHFolder = "./WishCplex/";
-//	public static final String pathToWISHFolder = "/home/jp/research/WishCplex/";
 	public static final String pathToMPEG = "./ldpcireg/PEG2/";
 	public static final String output = "/home/jp/output/";
 
@@ -10,9 +9,4 @@ public class Config {
 	public static final String pathToCplexDecode = pathToWISHFolder+"Cplex_decode";
 	public static final int degree = 11;
 	
-	//ignore
-//	public static final String pathToMPEG = "/home/jp/Dropbox/HOPE/ldpcireg/PEG2/";	
-//	public static final String pathToLibDai = "/home/jp/research/libDAI2/examples/example";
-//	public static final String pathToUai2Fg = "/home/jp/research/libDAI/utils/uai2fg";
-
 }

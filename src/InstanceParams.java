@@ -47,14 +47,6 @@ public class InstanceParams{
 		return this.code==CodeType.PEG_REGULAR;
 	}
 	
-//	public boolean isIrregular(){
-//		return this.code==CodeType.IRREGULAR;
-//	}
-	
-//	public boolean is63(){
-//		return this.code==CodeType.LDPC63;
-//	}
-	
 	public boolean isPEG(){
 		return this.code==CodeType.PEG;
 	}
