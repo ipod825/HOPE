@@ -123,15 +123,7 @@ public class CplexInstance extends Instance{
 			m=numVars-this.mReducedDim;
 			elim=true;
 		}
-		else if(this.mParams.isRegularlySparse()){
-			m=numVars-this.mReducedDim;
-			matrix = LDPCTools.getRegularSparseMatrix(numVars, m);//;LDPCTools.getPEGMatrix(numVars, m, false);
-			if(matrix==null){
-				elim=false;	
-			}else{
-				elim=true;
-			}
-		}else if(this.mParams.isRegularPEG()){
+		else if(this.mParams.isRegularPEG()){
 			m=numVars-this.mReducedDim;
 			matrix = LDPCTools.getRPEGMatrix(numVars, m, false);
 			if(matrix==null){

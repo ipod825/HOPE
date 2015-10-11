@@ -69,9 +69,7 @@ public class LSInstance extends Instance{
 		boolean[][] matrix=null;
 
 		boolean elim = true;
-		if(this.mParams.isRegularlySparse()){
-			matrix = LDPCTools.getRegularSparseMatrix(this.mOriginalDim,numConstr);
-		}else if(this.mParams.isPEG()){
+		if(this.mParams.isPEG()){
 			System.out.println("get peg");
 			matrix = LDPCTools.getPEGMatrix(this.mOriginalDim,numConstr,false);
 			elim = true;//false;
@@ -356,9 +354,6 @@ public class LSInstance extends Instance{
 			if(parity != null){
 				matrix = BinaryMatrixHelper.parityToGenerator(parity);	
 			}
-		}else if(this.mParams.isRegularlySparse()){
-			boolean[][] parity = LDPCTools.getRegularSparseMatrix(this.mOriginalDim, this.mOriginalDim-this.mReducedDim);
-			matrix = BinaryMatrixHelper.parityToGenerator(parity);
 		}
 		if(matrix == null){
 			matrix = BinaryMatrixHelper.getFullRankMatrix(this.mOriginalDim);

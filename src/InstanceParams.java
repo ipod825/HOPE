@@ -30,19 +30,11 @@ public class InstanceParams{
 		return this.constrained==ConstraintType.UNCONSTRAINED;
 	}
 	
-	public boolean isSoftConstrained(){
-		return this.constrained==ConstraintType.SOFT_CONSTRAINED;
-	}
-	
 	
 	public boolean isDense(){
 		return this.code==CodeType.DENSE;
 	}
-	
-	public boolean isRegularlySparse(){
-		return this.code==CodeType.REGULAR;
-	}
-	
+		
 	public boolean isRegularPEG(){
 		return this.code==CodeType.PEG_REGULAR;
 	}

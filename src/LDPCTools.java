@@ -28,11 +28,6 @@ public class LDPCTools {
 		}
 	}
 	
-	public static boolean[][] getRegularSparseMatrix(int n, int d){
-		double f = 0.37;
-		return BinaryMatrixHelper.getRandomMatrix(d,n,f);
-	}
-	
 	public static boolean[][] getSupposedlyEasilyDecodableCode(int n, int d){
 		boolean[][] matrix = new boolean[d][n];
 		Random rand = new Random();
@@ -52,7 +47,7 @@ public class LDPCTools {
 		return matrix;
 	}
 	
-	public static boolean[][] getRegularSparseMatrix(int n, int d, double f){
+	public static boolean[][] getUniformMatrix(int n, int d, double f){
 		return BinaryMatrixHelper.getRandomMatrix(d,n,f);
 	}
 	
@@ -64,7 +59,7 @@ public class LDPCTools {
 		String path=null;
 		boolean[][] fallbackMatrix;
 		if(fallback){
-			fallbackMatrix = getRegularSparseMatrix(n,d);
+			fallbackMatrix = getUniformMatrix(n,d,0.5);
 		}else{
 			fallbackMatrix = null;
 		}
@@ -94,7 +89,7 @@ public class LDPCTools {
 		String path=null;
 		boolean[][] fallbackMatrix;
 		if(fallback){
-			fallbackMatrix = getRegularSparseMatrix(n,d);
+			fallbackMatrix = getUniformMatrix(n,d, 0.5);
 		}else{
 			fallbackMatrix = null;
 		}
@@ -126,7 +121,7 @@ public class LDPCTools {
 		String path=null;
 		boolean[][] fallbackMatrix;
 		if(fallback){
-			fallbackMatrix = getRegularSparseMatrix(n,d);
+			fallbackMatrix = getUniformMatrix(n,d, 0.5);
 		}else{
 			fallbackMatrix = null;
 		}
