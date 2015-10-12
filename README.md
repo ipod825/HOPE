@@ -85,4 +85,4 @@ CplexInstance: a Cplex optimization instance. It will invoke the WishCplex and p
 
 LSInstance: a LocalSolver optimization instance. It will parse the .uai file and convert the problem into LocalSolver format.
 
-The aforementioned files constitutes the core of the code. The rest are mostly helpers.
+The aforementioned files constitute the core of this project. The rest are mostly helpers.
