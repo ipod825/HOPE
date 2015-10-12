@@ -60,11 +60,7 @@ If one would like to use LDPC for large domain and affine map for low domain to 
 In this case, if the code rate r is greater than or equal to 2/3, CPLEX+Parity will be used. Otherwise, the base solver will be switched to LocalSolver+affine map. If we would like to switch between solvers automatically based on optimization performance, instead of using a fixed switch point, we can change the constraint type to "ConstraintType.GO_WITH_THE_BEST".
 
 # Interface with CPLEX
-The interface with CPLEX is adapted from the source code of the UAI version of WISH, which can be downloaded from
-
-http://cs.stanford.edu/~ermon/code/WISH_ibmcplex_source.zip
-
-Here we modify the WishCplex by providing a few additional arguments:
+The interface with CPLEX is adapted from the source code of the UAI version of WISH. A modified version has been packaged under the folder "WishCplex". Here we modify the WishCplex by providing a few additional arguments:
 
 -skipelim: if provided, WishCplex will skip Gaussian elimination. For LDPC it is recommended to skip Gaussian elimination as the elimination process will impair the structure of parity matrix.
 
