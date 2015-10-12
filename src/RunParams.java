@@ -37,6 +37,10 @@ public class RunParams {
 	}
 	
 	
+	public RunParams(int timeLimit, ConstraintType constrained, CodeType code, SolverType solver){
+		this(true, 30, constrained, code, solver);
+	}
+	
 	public RunParams(boolean logScale, int timeLimit, ConstraintType constrained, CodeType code, SolverType solver){
 		this.logScale=logScale;
 		if(timeLimit>0){

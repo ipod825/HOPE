@@ -40,7 +40,7 @@ public class CplexInstance extends Instance{
 	public void callCplex(String path, int timeout, int m, boolean[][] matrix, CplexOutput cpo, boolean elim){
 		String matrixStr = convertMatrixToString(matrix);
 		
-		CommandLine cl = new CommandLine(Config.pathToCplex);
+		CommandLine cl = new CommandLine(Config.pathToWishCplex);
 		cl.addArgument("-paritylevel");
 		cl.addArgument("1");
 		cl.addArgument("-timelimit");

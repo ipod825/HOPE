@@ -10,7 +10,7 @@ public class Hope {
 	  try {
 		Hope hope = new Hope();
 		long start = new Date().getTime();
-		RunParams params = new RunParams(true, 30, ConstraintType.PARITY_CONSTRAINED,
+		RunParams params = new RunParams(30, ConstraintType.PARITY_CONSTRAINED,
 				CodeType.PEG, SolverType.CPLEX);
 		double est = hope.fastRun(testpath, 7, params);
 		long end = new Date().getTime();
