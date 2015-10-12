@@ -11,7 +11,7 @@ LocalSolver: sign up at http://www.localsolver.com. You can download the library
 
 Eclipse (or any Java IDE that supports Eclipse's project configuration, ex: IntelliJ IDEA)
 
-# Install
+# Setup
 git clone https://github.com/pjiangtw/HOPE.git
 
 Open Eclipse. Import project.
@@ -74,3 +74,15 @@ We can use the following command to invoke WishCplex on the problem "test.uai" w
 and the parity matrix 00111_10110_01000
 
 WH_cplex -paritylevel 1 -timelimit 30(timeout in seconds) -number 3(number of checks) -skipelim -matrix 00111_10110_01000 /home/user/test.uai
+
+# A quick guide to the source code
+
+Hope.java: the core of the inference algorithm. It will choose which quantile to estimate and generate optimization instances.
+
+RunParams.java: the class to hold the parameters (timeout, solver, constraint type,...etc). It also provide the function to generate an optimization instance based on the parameters.
+
+CplexInstance: a Cplex optimization instance. It will invoke the WishCplex and provide a desired parity matrix.
+
+LSInstance: a LocalSolver optimization instance. It will parse the .uai file and convert the problem into LocalSolver format.
+
+The aforementioned files constitutes the core of the code. The rest are mostly helpers.
