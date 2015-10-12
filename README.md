@@ -7,7 +7,7 @@ The project has only been tested on Ubuntu 12.04
 # Prerequisites
 CPLEX
 
-LocalSolver: sign up at http://www.localsolver.com. You can download the library jar file. There is a hard cap on the problem size for trial license. You can apply for academic license.
+LocalSolver: sign up at http://www.localsolver.com. You can download the library .jar file. There is a hard cap on the problem size for trial license. You can also apply for academic license.
 
 Eclipse (or any Java IDE that supports Eclipse's project configuration, ex: IntelliJ IDEA)
 
