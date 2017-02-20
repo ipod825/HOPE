@@ -7,8 +7,6 @@ public class Hope {
 //	private static final String testpath = Config.rootDir+"problems/test/grid_attractive_n3_w1.0_f1.0.uai";
 
 	private Optimizer[] optimizers;
-	private boolean parallel = true;
-	
 	protected int timeLimit;
 	protected int sampleSize;
 	protected CodeType code;
@@ -130,7 +128,11 @@ public Hope(int timeLimit, int sampleSize, CodeType code, OptimizerType optimize
 	  for(int t=0;t<sampleSize;t++)
 		  this.optimizers[t] = this.getOptimizer(fullDim, reducedDim);
 
-	  if(this.parallel){
+	  if(this.optimizers[0] instanceof LSOptimizer){
+		  // LocalSolver can not be parralized
+		  for(int i=0;i<sampleSize;i++)
+			  this.optimizers[i].estimate(path, fullDim);
+	  }else{
 		  final int f = fullDim;
 		  final String p = path;
 		  Parallel.For(0, sampleSize, new LoopBody <Integer>(){
@@ -138,9 +140,6 @@ public Hope(int timeLimit, int sampleSize, CodeType code, OptimizerType optimize
 				  optimizers[i].estimate(p, f);
 			 }
 		});
-	  }else{
-		  for(int i=0;i<sampleSize;i++)
-			  this.optimizers[i].estimate(path, fullDim);	  
 	  }
 	  
 	  
