@@ -3,3 +3,7 @@ bin
 .metadata
 .idea
 .iml
+*.o
+tmp/*
+log*
+output/*

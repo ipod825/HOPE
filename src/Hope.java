@@ -1,40 +1,30 @@
-import java.io.IOException;
 import java.util.Arrays;
 import java.util.Date;
 
 
 public class Hope {
-	private static final String testpath = "/home/jp/research/ICML13-Dataset/Grids_full/grid_attractive_n10_w1.0_f1.0.uai";
+	private static final String testpath = Config.rootDir+"problems/timeout/grid_attractive_n10_w1.0_f0.1.uai";
+//	private static final String testpath = Config.rootDir+"problems/test/grid_attractive_n3_w1.0_f1.0.uai";
 
+	private Optimizer[] optimizers;
+	private boolean parallel = true;
+	
   public static void main(String [] args) {
 	  try {
 		Hope hope = new Hope();
 		long start = new Date().getTime();
-		RunParams params = new RunParams(30, ConstraintType.PARITY_CONSTRAINED,
-				CodeType.PEG, SolverType.CPLEX);
-		double est = hope.fastRun(testpath, 7, params);
+		RunParams params = new RunParams(10, ConstraintType.PARITY_CONSTRAINED,
+				CodeType.PEG, OptimizerType.CPLEX);
+		double est = hope.solve(testpath, 7, params);
 		long end = new Date().getTime();
 		System.out.println("time:"+(end-start)/1000);
 		System.out.println("est:"+Math.log(est));
 	} catch (Exception e) {
-		// TODO Auto-generated catch block
 		e.printStackTrace();
 	}
   }
-  
-  
-  public void brute(String path){
-	  try {
-		MRF bf = new MRF(path);
-		double sum = bf.bruteSum();
-		System.out.println(sum);
-	} catch (IOException e) {
-		// TODO Auto-generated catch block
-		e.printStackTrace();
-	}
-  }
-  
 
+  
   class EarlyStopResult{
 	  Interval intv;
 	  double estZ;
@@ -119,49 +109,42 @@ public class Hope {
   
   private Estimate estimateQuantile(String path, RunParams params, int fullDim, int reducedDim, int sampleSize){
 	  double[] samples = new double[sampleSize];
-	  if(params.goWithTheBest()){
-		  params.setBestContrainedType(ConstraintType.UNCONSTRAINED);
-		  Instance inst = params.getInstance(path, fullDim, reducedDim);
-		  inst.solve(fullDim);
-		  samples[0]=inst.getOptimalValue();
-		  if(sampleSize>1){
-			  params.setBestContrainedType(ConstraintType.PARITY_CONSTRAINED);
-			  inst = params.getInstance(path, fullDim, reducedDim);
-			  inst.solve(fullDim);
-			  samples[1]=inst.getOptimalValue();
-			  
-			  if(samples[0]>samples[1]){
-				  System.out.println("unconstr wins!");
-				  params.setBestContrainedType(ConstraintType.UNCONSTRAINED);
-			  }else{
-				  System.out.println("unconstr loses!");
-			  }
-			  for(int t=2;t<sampleSize;t++){
-				  inst = params.getInstance(path, fullDim, reducedDim);
-				  inst.solve(fullDim);
-				  samples[t]=inst.getOptimalValue();
-			  }			  
-		  }
+
+	  this.optimizers = new Optimizer[sampleSize];
+	  for(int t=0;t<sampleSize;t++)
+		  this.optimizers[t] = params.getOptimizer(path, fullDim, reducedDim);
+
+	  if(this.parallel){
+		  final int f = fullDim;
+		  final String p = path;
+		  Parallel.For(0, sampleSize, new LoopBody <Integer>(){
+			  public void run(Integer i){
+				  optimizers[i].estimate(p, f);
+			 }
+		});
 	  }else{
-		  for(int t=0;t<sampleSize;t++){
-			  Instance inst = params.getInstance(path, fullDim, reducedDim);
-			  inst.solve(fullDim);
-			  samples[t]=inst.getOptimalValue();
-		  }
+		  for(int i=0;i<sampleSize;i++)
+			  this.optimizers[i].estimate(path, fullDim);	  
 	  }
+	  
+	  
+	  for(int i=0;i<sampleSize;i++)
+		  samples[i]=optimizers[i].getOptimalValue();
 	  Arrays.sort(samples);
-	  return  new Estimate(samples[sampleSize/2], params.isLogScale());
+	  System.out.print(Math.exp(samples[sampleSize/2]));
+	  System.out.println(Arrays.toString(samples));
+	  return  new Estimate(samples[sampleSize/2]);
   }
   
 
-  public double fastRun(String path, int sampleSize, RunParams params, RunResult runResult){
+  public double solve(String path, int sampleSize, RunParams params, RunResult runResult){
 	  	//initial run(unconstrained, full domain)
-		Instance fullInstance = params.getInstance(path); //new LSInstance(path, params);
-		fullInstance.solve(Instance.FULL_DOMAIN);
-		int fullDim = fullInstance.getOriginalDim();
+		Optimizer optimizer = params.getOptimizer(path);
+		optimizer.estimate(path, Optimizer.FULL_DOMAIN);
+		int fullDim = optimizer.getOriginalDim();
 		Estimate[] estimates = new Estimate[fullDim+1];
-		double max = fullInstance.getOptimalValue();
-		estimates[0] = new Estimate(max,params.isLogScale());
+		double max = optimizer.getOptimalValue();
+		estimates[0] = new Estimate(max);
 		estimates[fullDim] = estimateQuantile(path, params, fullDim, 0, sampleSize);
 		EarlyStopResult result = null;
 		while(! (result=earlyStop(estimates)).earlyStop() ){
@@ -178,24 +161,18 @@ public class Hope {
 		return result.estZ;
 }
   
-  public double fastRun(String path, int sampleSize, RunParams params){
-	  	return fastRun(path,sampleSize,params, null);
+  public double solve(String path, int sampleSize, RunParams params){
+	  	return solve(path,sampleSize,params, null);
   }
   
   class Estimate{
 	  double value=0;
-	  boolean logScale = true;
 	  
-	  public Estimate(double value, boolean logScale){
+	  public Estimate(double value){
 		  this.value=value;
-		  this.logScale=logScale;
 	  }
 	  public double getEstimate(){
-		  if(!this.logScale){
-			  return this.value;
-		  }else{
-			  return Math.pow(Math.E, this.value);
-		  }
+		  return Math.pow(Math.E, this.value);
 	  }
 	  public double getArea(int logWidth){
 		  return this.getArea(this.getEstimate(), logWidth);

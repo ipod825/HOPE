@@ -3,6 +3,7 @@ import java.io.File;
 import java.io.FileReader;
 import java.io.IOException;
 import java.io.PrintWriter;
+import java.util.Date;
 import java.util.Random;
 import java.util.StringTokenizer;
 
@@ -67,19 +68,15 @@ public class LDPCTools {
 		try {
 			path = generateDegreeFile(n,d);
 		} catch (ExecuteException e1) {
-			// TODO Auto-generated catch block
-			e1.printStackTrace();
+			System.out.println("Fail to generate LDPC!! Dense matrix will be used");
 			return fallbackMatrix;
 		} catch (IOException e1) {
-			// TODO Auto-generated catch block
 			e1.printStackTrace();
 			return fallbackMatrix;
 		}
 		try {
 			return parseDegrees(path);
-//			BinaryMatrixHelper.printMatrix(constraints);
 		} catch (IOException e) {
-			// TODO Auto-generated catch block
 			e.printStackTrace();
 		}
 		return fallbackMatrix;
@@ -98,11 +95,9 @@ public class LDPCTools {
 			generatePEGRegDegree(deg);
 			path = generateRegularDegreeFile(n,d,deg);
 		} catch (ExecuteException e1) {
-			// TODO Auto-generated catch block
-			e1.printStackTrace();
+			System.out.println("Fail to generate LDPC!! Dense matrix will be used");
 			return fallbackMatrix;
 		} catch (IOException e1) {
-			// TODO Auto-generated catch block
 			e1.printStackTrace();
 			return fallbackMatrix;
 		}
@@ -111,7 +106,6 @@ public class LDPCTools {
 			BinaryMatrixHelper.printMatrix(matrix);
 			return matrix;
 		} catch (IOException e) {
-			// TODO Auto-generated catch block
 			e.printStackTrace();
 		}
 		return fallbackMatrix;
@@ -131,11 +125,10 @@ public class LDPCTools {
 			generatePEGRegDegree(deg);
 			path = generateRegularDegreeFile(n,d,deg);
 		} catch (ExecuteException e1) {
-			// TODO Auto-generated catch block
+			System.out.println("Fail to generate LDPC!! Dense matrix will be used");
 			e1.printStackTrace();
 			return fallbackMatrix;
 		} catch (IOException e1) {
-			// TODO Auto-generated catch block
 			e1.printStackTrace();
 			return fallbackMatrix;
 		}
@@ -144,7 +137,6 @@ public class LDPCTools {
 			BinaryMatrixHelper.printMatrix(matrix);
 			return matrix;
 		} catch (IOException e) {
-			// TODO Auto-generated catch block
 			e.printStackTrace();
 		}
 		return fallbackMatrix;
@@ -158,18 +150,16 @@ public class LDPCTools {
 			try {
 				path = generateRegularDegreeFile(n,d,d*regDeg[d]/n);
 			} catch (ExecuteException e1) {
-				// TODO Auto-generated catch block
+				System.out.println("Fail to generate LDPC!! Dense matrix will be used");
 				e1.printStackTrace();
 				return null;
 			} catch (IOException e1) {
-				// TODO Auto-generated catch block
 				e1.printStackTrace();
 				return null;
 			}
 			try {
 				return parseDegrees(path);
 			} catch (IOException e) {
-				// TODO Auto-generated catch block
 				e.printStackTrace();
 			}
 			return null;
@@ -186,8 +176,9 @@ public class LDPCTools {
 	}
 	
 	public static String generateDegreeFile(int n, int checks) throws ExecuteException, IOException{
-		String outName = "n"+n+"m"+checks+"d"+Config.degree+".dat";
-		File outf = new File(Config.output+outName);
+//		String outName = "n"+n+"m"+checks+"d"+Config.degree+".dat";
+		String outName = "n"+n+"m"+checks+"d"+Config.degree+"_"+ new Date().getTime()+"_"+Thread.currentThread().getId()+".dat";
+		File outf = new File(Config.tmpDir+outName);
 		if(outf.exists()){
 			return outf.getAbsolutePath();
 		}
@@ -197,8 +188,10 @@ public class LDPCTools {
 		cl.addArgument(""+checks);
 		cl.addArgument("-numN");
 		cl.addArgument(""+n);
+		cl.addArgument("-quiet");
+		cl.addArgument(""+1);
 		cl.addArgument("-codeName");
-		cl.addArgument(Config.output+outName);
+		cl.addArgument(Config.tmpDir+outName);
 		cl.addArgument("-degFileName");
 		cl.addArgument("DenEvl_"+Config.degree+".deg");
 		  
@@ -210,7 +203,7 @@ public class LDPCTools {
 	
 	public static void generatePEGRegDegree(int deg) throws ExecuteException, IOException{
 		String degFile = "Reg_"+deg+".deg";
-		String path = Config.output+degFile;
+		String path = Config.tmpDir+degFile;
 		File f = new File(path);
 		if(f.exists())
 			return;
@@ -224,7 +217,7 @@ public class LDPCTools {
 	public static String generateRegularDegreeFile(int n, int checks, int deg) throws ExecuteException, IOException{
 		String degFile = "Reg_"+deg+".deg";
 		String outName = "n"+n+"m"+checks+"regd"+deg+".dat";
-		File outf = new File(Config.output+outName);
+		File outf = new File(Config.tmpDir+outName);
 		if(outf.exists()){
 			return outf.getAbsolutePath();
 		}
@@ -235,7 +228,7 @@ public class LDPCTools {
 		cl.addArgument("-numN");
 		cl.addArgument(""+n);
 		cl.addArgument("-codeName");
-		cl.addArgument(Config.output+outName);
+		cl.addArgument(Config.tmpDir+outName);
 		cl.addArgument("-degFileName");
 		cl.addArgument(degFile);
 		  
