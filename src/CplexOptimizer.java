@@ -9,12 +9,12 @@ import org.apache.commons.exec.PumpStreamHandler;
 public class CplexOptimizer extends Optimizer{
 	private int mNumVars=0;
 	private double mOptValue=0;
-	public CplexOptimizer(InstanceParams params) {
-		super(params);
+	public CplexOptimizer(ConstraintType constraint, CodeType code, int timeLimit) {
+		super(constraint, code, timeLimit);
 	}
 	
-	public CplexOptimizer(InstanceParams params, int reducedDim){
-		super(params, reducedDim);
+	public CplexOptimizer(ConstraintType constraint, CodeType code, int timeLimit, int reducedDim) {
+		super(constraint, code, timeLimit, reducedDim);
 	}
 
 	private String convertMatrixToString(boolean[][] matrix){
@@ -100,12 +100,12 @@ public class CplexOptimizer extends Optimizer{
 			matrix=null;
 			m=0;
 			elim=true;
-		}else if(this.mParams.isDense()){
+		}else if(this.code==CodeType.DENSE){
 			matrix=null;
 			m=numVars-this.mReducedDim;
 			elim=true;
 		}
-		else if(this.mParams.isRegularPEG()){
+		else if(this.code==CodeType.PEG_REGULAR){
 			m=numVars-this.mReducedDim;
 			matrix = LDPCTools.getRPEGMatrix(numVars, m, false);
 			if(matrix==null){
@@ -124,7 +124,7 @@ public class CplexOptimizer extends Optimizer{
 			}
 		}
 		CplexOutput cpo = new CplexOutput();
-		callCplex(path, this.mParams.getTimeLimit(), m, matrix, cpo, elim);
+		callCplex(path, this.timeLimit, m, matrix, cpo, elim);
 		this.mOptValue = cpo.getOptimalValue()*Math.log(10);
 		this.mNumVars = cpo.getNumVars();
 	}

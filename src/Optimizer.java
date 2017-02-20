@@ -2,29 +2,20 @@
 public abstract class Optimizer {
 	public static final int FULL_DOMAIN = -1;
 	protected int mReducedDim=FULL_DOMAIN;
-	protected InstanceParams mParams = null;  
-	public Optimizer(InstanceParams params){
-		this.mReducedDim = FULL_DOMAIN;
-		
-		if(params!=null){
-			this.mParams = params;
-			System.out.println(String.format("%s, constraints: %s, domain: %d", 
-					this.getSolver(), params.constraint, this.mReducedDim));
-		}else{
-			this.mParams = new RunParams().getDefaultInstanceParams();
-		}
+	protected ConstraintType constraint;
+	protected CodeType code;
+	protected int timeLimit;
+	public Optimizer(ConstraintType constraint, CodeType code, int timeLimit){
+		this(constraint, code, timeLimit, FULL_DOMAIN);
 	}
 	
-	public Optimizer(InstanceParams params, int reducedDim){
+	public Optimizer(ConstraintType constraint, CodeType code, int timeLimit, int reducedDim){
+		this.constraint = constraint;
+		this.code = code;
+		this.timeLimit = timeLimit;
 		this.mReducedDim = reducedDim;
-		
-		if(params!=null){
-			this.mParams = params;
-			System.out.println(String.format("%s, constraints: %s, domain: %d", 
-					this.getSolver(), params.constraint, this.mReducedDim));
-		}else{
-			this.mParams = new RunParams().getDefaultInstanceParams();
-		}
+		System.out.println(String.format("%s, constraints: %s, domain: %d, timeLimit: %d", 
+				this.getSolver(),  constraint, reducedDim, timeLimit));
 	}
 	
 	public abstract void estimate(String path, int dim);

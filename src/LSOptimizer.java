@@ -22,12 +22,12 @@ public class LSOptimizer extends Optimizer{
 	private double runtime=0;
 	private int tick=5;
 	
-	public LSOptimizer(InstanceParams params){
-		super(params);
+	public LSOptimizer(ConstraintType constraint, CodeType code, int timeLimit) {
+		super(constraint, code, timeLimit);
 	}
 	
-	public LSOptimizer(InstanceParams params, int reducedDim){
-		super(params, reducedDim);
+	public LSOptimizer(ConstraintType constraint, CodeType code, int timeLimit, int reducedDim) {
+		super(constraint, code, timeLimit, reducedDim);
 	}
 	
 	class Problem{
@@ -65,11 +65,11 @@ public class LSOptimizer extends Optimizer{
 		boolean[][] matrix=null;
 
 		boolean elim = true;
-		if(this.mParams.isPEG()){
+		if(this.code==CodeType.PEG){
 			System.out.println("get peg");
 			matrix = LDPCTools.getPEGMatrix(this.mOriginalDim,numConstr,false);
 			elim = true;//false;
-		}else if(this.mParams.isRegularPEG()){
+		}else if(this.code==CodeType.PEG_REGULAR){
 			System.out.println("get reg peg");
 			matrix = LDPCTools.getRPEGMatrix(this.mOriginalDim,numConstr,false);
 			elim = true;//false;
@@ -118,7 +118,7 @@ public class LSOptimizer extends Optimizer{
 			model.close();
 			setSolverParams(localsolver);
 			LSPhase phase = localsolver.createPhase();
-			phase.setTimeLimit(this.mParams.getTimeLimit());
+			phase.setTimeLimit(this.timeLimit);
 			
 			long start = new Date().getTime();
 			localsolver.solve();
@@ -137,7 +137,7 @@ public class LSOptimizer extends Optimizer{
 	}
 	private Problem getProblem(String path, LSModel model) throws IOException{
 		Problem prob=null;
-			if(this.mParams.isUnconstrained()){
+			if(this.constraint==ConstraintType.UNCONSTRAINED){
 				System.out.println("unconstrained");
 				prob = loadProblemFromFile(path, model, this.mReducedDim);	
 			}
@@ -340,7 +340,7 @@ public class LSOptimizer extends Optimizer{
 		LSExpression[] x = new LSExpression[this.mOriginalDim];
 		
 		boolean matrix[][]=null;;
-		if(this.mParams.isPEG()){
+		if(this.code==CodeType.PEG){
 			boolean[][] parity = LDPCTools.getPEGMatrix(this.mOriginalDim, this.mOriginalDim-this.mReducedDim, false);
 			if(parity != null){
 				matrix = BinaryMatrixHelper.parityToGenerator(parity);	

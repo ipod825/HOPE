@@ -9,13 +9,31 @@ public class Hope {
 	private Optimizer[] optimizers;
 	private boolean parallel = true;
 	
+	protected int timeLimit;
+	protected int sampleSize;
+	protected ConstraintType constraint;
+	protected CodeType code;
+	private OptimizerType optimizerType;
+	
+public Hope(int timeLimit, int sampleSize, ConstraintType constraint, CodeType code, OptimizerType optimizerType){
+	this.timeLimit = timeLimit;
+	this.sampleSize = sampleSize; 
+	this.constraint = constraint;
+	this.code = code;
+	this.optimizerType = optimizerType;
+}
+	
   public static void main(String [] args) {
 	  try {
-		Hope hope = new Hope();
+		  int timeLimit=10;
+		int sampleSize = 7;
+		ConstraintType constraint = ConstraintType.PARITY_CONSTRAINED;
+		CodeType code = CodeType.PEG;
+		OptimizerType optimizerType = OptimizerType.CPLEX;
+		
 		long start = new Date().getTime();
-		RunParams params = new RunParams(10, ConstraintType.PARITY_CONSTRAINED,
-				CodeType.PEG, OptimizerType.CPLEX);
-		double est = hope.solve(testpath, 7, params);
+		Hope hope = new Hope(timeLimit, sampleSize, constraint, code, optimizerType);
+		double est = hope.solve(testpath);
 		long end = new Date().getTime();
 		System.out.println("time:"+(end-start)/1000);
 		System.out.println("est:"+Math.log(est));
@@ -107,12 +125,12 @@ public class Hope {
 	  return new EarlyStopResult(maxDiffIntv,0);
   }
   
-  private Estimate estimateQuantile(String path, RunParams params, int fullDim, int reducedDim, int sampleSize){
+  private Estimate estimateQuantile(String path, int fullDim, int reducedDim, int sampleSize){
 	  double[] samples = new double[sampleSize];
 
 	  this.optimizers = new Optimizer[sampleSize];
 	  for(int t=0;t<sampleSize;t++)
-		  this.optimizers[t] = params.getOptimizer(path, fullDim, reducedDim);
+		  this.optimizers[t] = this.getOptimizer(fullDim, reducedDim);
 
 	  if(this.parallel){
 		  final int f = fullDim;
@@ -136,21 +154,45 @@ public class Hope {
 	  return  new Estimate(samples[sampleSize/2]);
   }
   
-
-  public double solve(String path, int sampleSize, RunParams params, RunResult runResult){
+  
+  public double solve(String path){
+	  	return solve(path, null);
+  }
+  
+  public Optimizer getOptimizer(){
+		return this.getOptimizer(-1, -1);
+  }
+  
+  public Optimizer getOptimizer(int fullDim, int reducedDim){
+	  OptimizerType optimizerType = this.optimizerType;
+	  if(optimizerType==OptimizerType.BY_CONSTRAINTS){
+		double r = reducedDim/(double)fullDim;
+		if(fullDim==-1 || r*3>2 )
+			optimizerType = OptimizerType.CPLEX;
+		else
+			optimizerType = OptimizerType.LS;
+	}
+	if(this.optimizerType==OptimizerType.CPLEX)
+		return new CplexOptimizer(ConstraintType.PARITY_CONSTRAINED, this.code, this.timeLimit, reducedDim);
+	else
+		return new LSOptimizer(ConstraintType.UNCONSTRAINED, this.code, this.timeLimit, reducedDim);
+}
+	
+  
+  public double solve(String path, RunResult runResult){
 	  	//initial run(unconstrained, full domain)
-		Optimizer optimizer = params.getOptimizer(path);
+		Optimizer optimizer = this.getOptimizer();
 		optimizer.estimate(path, Optimizer.FULL_DOMAIN);
 		int fullDim = optimizer.getOriginalDim();
 		Estimate[] estimates = new Estimate[fullDim+1];
 		double max = optimizer.getOptimalValue();
 		estimates[0] = new Estimate(max);
-		estimates[fullDim] = estimateQuantile(path, params, fullDim, 0, sampleSize);
+		estimates[fullDim] = estimateQuantile(path, fullDim, 0, sampleSize);
 		EarlyStopResult result = null;
 		while(! (result=earlyStop(estimates)).earlyStop() ){
 			Interval current = result.intv;
 			int d = (current.end+current.start)/2;  
-			estimates[d]=estimateQuantile(path, params, fullDim, fullDim-d, sampleSize);
+			estimates[d]=estimateQuantile(path, fullDim, fullDim-d, sampleSize);
 		}
 		double saving = this.countSaving(estimates);
 		System.out.println("saving:"+saving);
@@ -160,10 +202,7 @@ public class Hope {
 		}
 		return result.estZ;
 }
-  
-  public double solve(String path, int sampleSize, RunParams params){
-	  	return solve(path,sampleSize,params, null);
-  }
+
   
   class Estimate{
 	  double value=0;
