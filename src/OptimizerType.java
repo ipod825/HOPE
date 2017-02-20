@@ -1,4 +1,4 @@
 
 public enum OptimizerType {
-	CPLEX,LS,BY_CONSTRAINTS
+	CPLEX,LS,TWO_THIRD
 }

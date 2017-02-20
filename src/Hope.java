@@ -11,28 +11,26 @@ public class Hope {
 	
 	protected int timeLimit;
 	protected int sampleSize;
-	protected ConstraintType constraint;
 	protected CodeType code;
 	private OptimizerType optimizerType;
 	
-public Hope(int timeLimit, int sampleSize, ConstraintType constraint, CodeType code, OptimizerType optimizerType){
+public Hope(int timeLimit, int sampleSize, CodeType code, OptimizerType optimizerType){
 	this.timeLimit = timeLimit;
 	this.sampleSize = sampleSize; 
-	this.constraint = constraint;
 	this.code = code;
 	this.optimizerType = optimizerType;
 }
 	
   public static void main(String [] args) {
 	  try {
-		  int timeLimit=10;
+		int timeLimit=10;
 		int sampleSize = 7;
-		ConstraintType constraint = ConstraintType.PARITY_CONSTRAINED;
 		CodeType code = CodeType.PEG;
 		OptimizerType optimizerType = OptimizerType.CPLEX;
 		
+		
 		long start = new Date().getTime();
-		Hope hope = new Hope(timeLimit, sampleSize, constraint, code, optimizerType);
+		Hope hope = new Hope(timeLimit, sampleSize, code, optimizerType);
 		double est = hope.solve(testpath);
 		long end = new Date().getTime();
 		System.out.println("time:"+(end-start)/1000);
@@ -165,17 +163,17 @@ public Hope(int timeLimit, int sampleSize, ConstraintType constraint, CodeType c
   
   public Optimizer getOptimizer(int fullDim, int reducedDim){
 	  OptimizerType optimizerType = this.optimizerType;
-	  if(optimizerType==OptimizerType.BY_CONSTRAINTS){
+	  if(optimizerType==OptimizerType.TWO_THIRD){
 		double r = reducedDim/(double)fullDim;
 		if(fullDim==-1 || r*3>2 )
 			optimizerType = OptimizerType.CPLEX;
 		else
 			optimizerType = OptimizerType.LS;
 	}
-	if(this.optimizerType==OptimizerType.CPLEX)
-		return new CplexOptimizer(ConstraintType.PARITY_CONSTRAINED, this.code, this.timeLimit, reducedDim);
+	if(optimizerType==OptimizerType.CPLEX)
+		return new CplexOptimizer(this.code, this.timeLimit, reducedDim);
 	else
-		return new LSOptimizer(ConstraintType.UNCONSTRAINED, this.code, this.timeLimit, reducedDim);
+		return new LSOptimizer(this.code, this.timeLimit, reducedDim);
 }
 	
   

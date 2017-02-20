@@ -1,4 +1,6 @@
 
 public enum CodeType {
-	DENSE,PEG,PEG_REGULAR
+	DENSE,
+	PEG,
+	PEG_REGULAR
 }

@@ -22,12 +22,12 @@ public class LSOptimizer extends Optimizer{
 	private double runtime=0;
 	private int tick=5;
 	
-	public LSOptimizer(ConstraintType constraint, CodeType code, int timeLimit) {
-		super(constraint, code, timeLimit);
+	public LSOptimizer(CodeType code, int timeLimit) {
+		super(code, timeLimit);
 	}
 	
-	public LSOptimizer(ConstraintType constraint, CodeType code, int timeLimit, int reducedDim) {
-		super(constraint, code, timeLimit, reducedDim);
+	public LSOptimizer(CodeType code, int timeLimit, int reducedDim) {
+		super(code, timeLimit, reducedDim);
 	}
 	
 	class Problem{
@@ -55,57 +55,6 @@ public class LSOptimizer extends Optimizer{
 	}
 
 	
-	
-	private boolean[] addConstraints(LSModel model, Problem prob){
-		if(this.mReducedDim==FULL_DOMAIN || this.mReducedDim == this.mOriginalDim){
-			return null;
-		}
-		int numConstr = this.mOriginalDim-this.mReducedDim;
-		LSExpression[] x = prob.vars.x;
-		boolean[][] matrix=null;
-
-		boolean elim = true;
-		if(this.code==CodeType.PEG){
-			System.out.println("get peg");
-			matrix = LDPCTools.getPEGMatrix(this.mOriginalDim,numConstr,false);
-			elim = true;//false;
-		}else if(this.code==CodeType.PEG_REGULAR){
-			System.out.println("get reg peg");
-			matrix = LDPCTools.getRPEGMatrix(this.mOriginalDim,numConstr,false);
-			elim = true;//false;
-		}
-		
-		if(matrix==null){
-			elim=true;
-		}
-		int rank=-1;
-		if(elim){
-			System.out.println("elim");
-			rank = BinaryMatrixHelper.gaussJordanElimination(matrix, numConstr);
-			BinaryMatrixHelper.printMatrix(matrix);
-		}
-		boolean[] parityVec = new boolean[numConstr];
-		for(int i=0;i<numConstr;i++){
-			LSExpression xor = model.createExpression(LSOperator.Xor);
-			for(int j=0;j<x.length;j++){
-				if(matrix[i][j])
-					xor.addOperand(x[j]);
-			}
-			int parity;
-			if(rank>0 && i>=rank){
-				parity=0;
-			}else{
-				parity = (int) Math.round(Math.random());
-			}
-			
-			parityVec[i]= (parity==1?true:false);
-			LSExpression constr = model.createExpression(LSOperator.Eq, xor, parity);
-			model.addConstraint(constr);
-		}
-		return BinaryMatrixHelper.findFullSolution(parityVec, BinaryMatrixHelper.transpose(BinaryMatrixHelper.copyMatrix(matrix,numConstr)));
-	}
-	
-	
 	public void estimate(String path, int numVars){
 		double max=0;
 		boolean isMaxAssigned=false;
@@ -113,7 +62,7 @@ public class LSOptimizer extends Optimizer{
 		LSModel model = localsolver.getModel();
 		Problem prob=null;
 		try {
-			prob = this.getProblem(path, model);
+			prob = this.loadProblemFromFile(path, model, this.mReducedDim);
 			model.addObjective(prob.solverObjective, LSObjectiveDirection.Maximize);
 			model.close();
 			setSolverParams(localsolver);
@@ -135,21 +84,7 @@ public class LSOptimizer extends Optimizer{
 		}
 		localsolver.delete();
 	}
-	private Problem getProblem(String path, LSModel model) throws IOException{
-		Problem prob=null;
-			if(this.constraint==ConstraintType.UNCONSTRAINED){
-				System.out.println("unconstrained");
-				prob = loadProblemFromFile(path, model, this.mReducedDim);	
-			}
-			else{
-				//parity constraints
-				prob = loadProblemFromFile(path, model, FULL_DOMAIN);
-				boolean[] ini = addConstraints(model, prob);
-				BinaryMatrixHelper.printVector(ini);
-				prob.ini = ini;
-			}
-		return prob;
-	}
+	
 	
 	private void setSolverParams(LocalSolver localsolver){
 		Random rand = new Random();
@@ -163,7 +98,6 @@ public class LSOptimizer extends Optimizer{
 	public int getOriginalDim(){
 		return this.mOriginalDim;
 	}
-	
 	
 	private boolean[] toBooleanSolution(LSSolution sol, Problem prob){
 		if(sol==null || prob==null){
@@ -182,7 +116,6 @@ public class LSOptimizer extends Optimizer{
 	}
 	
 	public double getOptimalValue(){
-		System.out.println("opt:"+this.mOptValue);
 		return this.mOptValue;
 	}
 

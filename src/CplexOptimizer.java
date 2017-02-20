@@ -9,12 +9,12 @@ import org.apache.commons.exec.PumpStreamHandler;
 public class CplexOptimizer extends Optimizer{
 	private int mNumVars=0;
 	private double mOptValue=0;
-	public CplexOptimizer(ConstraintType constraint, CodeType code, int timeLimit) {
-		super(constraint, code, timeLimit);
+	public CplexOptimizer(CodeType code, int timeLimit) {
+		super(code, timeLimit);
 	}
 	
-	public CplexOptimizer(ConstraintType constraint, CodeType code, int timeLimit, int reducedDim) {
-		super(constraint, code, timeLimit, reducedDim);
+	public CplexOptimizer(CodeType code, int timeLimit, int reducedDim) {
+		super(code, timeLimit, reducedDim);
 	}
 
 	private String convertMatrixToString(boolean[][] matrix){
