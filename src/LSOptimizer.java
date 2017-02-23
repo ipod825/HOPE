@@ -22,12 +22,12 @@ public class LSOptimizer extends Optimizer{
 	private double runtime=0;
 	private int tick=5;
 	
-	public LSOptimizer(CodeType code, int timeLimit) {
-		super(code, timeLimit);
+	public LSOptimizer(OptimizerParams params) {
+		super(params);
 	}
 	
-	public LSOptimizer(CodeType code, int timeLimit, int reducedDim) {
-		super(code, timeLimit, reducedDim);
+	public LSOptimizer(OptimizerParams params, int reducedDim) {
+		super(params, reducedDim);
 	}
 	
 	class Problem{
@@ -67,7 +67,7 @@ public class LSOptimizer extends Optimizer{
 			model.close();
 			setSolverParams(localsolver);
 			LSPhase phase = localsolver.createPhase();
-			phase.setTimeLimit(this.timeLimit);
+			phase.setTimeLimit(this.params.timeLimit());
 			
 			long start = new Date().getTime();
 			localsolver.solve();
@@ -89,6 +89,7 @@ public class LSOptimizer extends Optimizer{
 	private void setSolverParams(LocalSolver localsolver){
 		Random rand = new Random();
 		localsolver.getParam().setSeed(rand.nextInt(1000000));
+		localsolver.getParam().setNbThreads(this.params.thread());
 		localsolver.getParam().setAnnealingLevel(9);
 		localsolver.getParam().setTimeBetweenDisplays(this.tick);
 		localsolver.getParam().setVerbosity(0);
@@ -273,7 +274,7 @@ public class LSOptimizer extends Optimizer{
 		LSExpression[] x = new LSExpression[this.mOriginalDim];
 		
 		boolean matrix[][]=null;;
-		if(this.code==CodeType.PEG){
+		if(this.params.codeType()==CodeType.PEG){
 			boolean[][] parity = LDPCTools.getPEGMatrix(this.mOriginalDim, this.mOriginalDim-this.mReducedDim, false);
 			if(parity != null){
 				matrix = BinaryMatrixHelper.parityToGenerator(parity);	

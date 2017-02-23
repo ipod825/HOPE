@@ -2,17 +2,16 @@
 public abstract class Optimizer {
 	public static final int FULL_DOMAIN = -1;
 	protected int mReducedDim=FULL_DOMAIN;
-	protected CodeType code;
-	protected int timeLimit;
-	public Optimizer(CodeType code, int timeLimit){
-		this(code, timeLimit, FULL_DOMAIN);
+	protected OptimizerParams params;
+	public Optimizer(OptimizerParams params){
+		this(params, FULL_DOMAIN);
 	}
 	
-	public Optimizer(CodeType code, int timeLimit, int reducedDim){
-		this.code = code;
-		this.timeLimit = timeLimit;
+	public Optimizer(OptimizerParams params, int reducedDim){
+		this.params = params;
 		this.mReducedDim = reducedDim;
-		System.out.println(String.format("%s, domain: %d, timeLimit: %d", this.getSolver(),  reducedDim, timeLimit));
+		System.out.print(String.format("%s, domain: %d", this.getSolver(),  reducedDim));
+		this.params.describe();
 	}
 	
 	public abstract void estimate(String path, int dim);
