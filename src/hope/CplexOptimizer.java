@@ -1,24 +1,22 @@
 package hope;
 
-import java.io.IOException;
-
-import org.apache.commons.exec.CommandLine;
-import org.apache.commons.exec.DefaultExecutor;
-import org.apache.commons.exec.Executor;
-import org.apache.commons.exec.LogOutputStream;
-import org.apache.commons.exec.PumpStreamHandler;
-
 import problem.Problem;
 
 import code.Code;
 
 
 public class CplexOptimizer extends Optimizer{
+	private String outputPath;
 	
 	public CplexOptimizer(OptimizerParams params) {
-		super(params);
+		this(params, null);
 	}
 
+	public CplexOptimizer(OptimizerParams params, String outputPath) {
+		super(params);
+		this.outputPath = outputPath;
+	}
+	
 	private String convertMatrixToString(boolean[][] matrix){
 		if(matrix==null){
 			return null;
@@ -33,64 +31,21 @@ public class CplexOptimizer extends Optimizer{
 		return sb.toString();
 	} 
 	
-	public void callCplex(String path, int timeout, int m, boolean[][] matrix, CplexOutput cpo, boolean elim){
+	public double callCplex(String path, int timeLimit, int numConstraint, boolean[][] matrix,  boolean elim){
 		String matrixStr = convertMatrixToString(matrix);
-		
-		CommandLine cl = new CommandLine(Config.pathToWishCplex);
-		cl.addArgument("-paritylevel");
-		cl.addArgument("1");
-		cl.addArgument("-timelimit");
-		cl.addArgument(""+timeout);
-		cl.addArgument("-number");
-		cl.addArgument(""+m);
-		if(!elim){
-			cl.addArgument("-skipelim");
-		}
-		if(matrixStr!=null){
-			cl.addArgument("-matrix");
-			cl.addArgument(matrixStr);	
-		}
-		cl.addArgument(path);
-		
-		Executor exec = new DefaultExecutor();
-		
-		try {
-			exec.setStreamHandler(new PumpStreamHandler(cpo));
-			exec.setExitValues(null);
-			exec.execute(cl);
-			cpo.close();
-		} catch (IOException e) {
-			e.printStackTrace();
-		}
+		String cmd = Config.pathToWishCplex;
+		cmd += "  -paritylevel 1";
+		cmd += " -timelimit " + timeLimit;
+		cmd += " -number " + numConstraint;
+		if(!elim)
+			cmd += " -skipelim";
+		if(matrixStr!=null)
+			cmd += " -matrix " + matrixStr;
+		cmd += " " + path;
+		CmdOutputHandler handler = new CmdOutputHandler("Solution value log10lik = ");
+		return handler.runCmd(cmd, this.outputPath);
 	}
-	
-	class CplexOutput extends LogOutputStream{
-		private static final String LOG_PREFIX = "Solution value log10lik = ";
-		private static final String VAR_PREFIX = "number of variables = ";
-		
-		private double optimalValue = 0;
-		private int numVars = 0;
 
-		@Override
-		protected void processLine(String line, int level) {
-			if(line==null){
-				return;
-			}
-			if(line.startsWith(LOG_PREFIX)){
-				optimalValue = Double.parseDouble(line.substring(LOG_PREFIX.length()));
-			}else if(line.startsWith(VAR_PREFIX)){
-				numVars = Integer.parseInt(line.substring(VAR_PREFIX.length()));
-			}
-		}
-				
-		public double getOptimalValue(){
-			return this.optimalValue;
-		}
-		
-		public int getNumVars(){
-			return this.numVars;
-		}
-	}
 
 	@Override
 	public double estimate(Problem problem, int numConstraint) {
@@ -103,8 +58,7 @@ public class CplexOptimizer extends Optimizer{
 		else
 			elim=false;
 		
-		CplexOutput cpo = new CplexOutput();
-		callCplex(problem.getPath(), this.params.timeLimit(), numConstraint, matrix, cpo, elim);
-		return cpo.getOptimalValue()*Math.log(10);
+		double res = callCplex(problem.getPath(), this.params.timeLimit(), numConstraint, matrix, elim);
+		return res*Math.log(10);
 	}
 }

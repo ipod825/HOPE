@@ -15,10 +15,7 @@ import localsolver.LocalSolver;
 
 
 public class LSOptimizer extends Optimizer{
-//	private int fullDim = -1;
-//	private int reducedDim = -1;
-	private int tick = 5;
-	
+
 	public LSOptimizer(OptimizerParams params) {
 		super(params);
 	}
@@ -53,7 +50,7 @@ public class LSOptimizer extends Optimizer{
 		LSModel model = localsolver.getModel();
 		LSProblem prob=null;
 		//TODO why 0?
-		double res = 0;
+		double res = Double.NaN;;
 
 		int fullDim = problem.getNumVar();
 		int reducedDim = fullDim-numConstraint;
@@ -70,16 +67,15 @@ public class LSOptimizer extends Optimizer{
 		res = sol.getDoubleValue(prob.originalObjective);	
 
 		localsolver.delete();
+		assert !Double.isNaN(res);
 		return res;
 	}
-	
 	
 	private void setSolverParams(LocalSolver localsolver){
 		Random rand = new Random();
 		localsolver.getParam().setSeed(rand.nextInt(1000000));
 		localsolver.getParam().setNbThreads(this.params.thread());
 		localsolver.getParam().setAnnealingLevel(9);
-		localsolver.getParam().setTimeBetweenDisplays(this.tick);
 		localsolver.getParam().setVerbosity(0);
 	}
 	

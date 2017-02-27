@@ -1,4 +1,4 @@
-package hope;
+package utils;
 import java.io.BufferedReader;
 import java.io.File;
 import java.io.FileReader;
@@ -50,5 +50,10 @@ public class Utils {
 	
 	private static double log2(double p){
 		return Math.log(p)/Math.log(2);
+	}
+	
+	public  static String basename(String path){
+		int sep = path.lastIndexOf("/");
+		return path.substring(sep + 1);
 	}
 }

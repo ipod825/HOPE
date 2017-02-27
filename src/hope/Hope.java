@@ -95,11 +95,15 @@ public class Hope implements Solver{
 				int d = (current.end+current.start)/2;
 				estimates[d] = this.estimateQuantile(problem, d);
 			}
+			System.out.print(this.reportEstimates());
 			return result.estZ;
 		}
 		else{
-			for(int d=1;d<fullDim+1;++d)
+			for(int d=1;d<fullDim+1;++d){
 				estimates[d] = this.estimateQuantile(problem, d);
+				if(d==20)
+					break;
+			}
 			//TODO
 			return 0;
 		}
@@ -132,7 +136,10 @@ public class Hope implements Solver{
 			});	
 		  }
 		  Arrays.sort(samples);
-		  System.out.println("Estimates: "+Arrays.toString(samples));
+		  System.out.print("Estimates: ");
+		  for(double s: samples)
+			  System.out.printf("%.2f,", s);
+		  System.out.println();
 		  return  new Estimate(samples[sampleSize/2]);
 	  }
 	  
@@ -155,8 +162,10 @@ public class Hope implements Solver{
 	  
 	public double[] getLogEstimates(){
 		double[] res = new double[estimates.length];
-		for(int i=this.estimates.length-1;i>=0;i--)
-			res[i] = this.estimates[i].getLogEstimate();
+		for(int i=this.estimates.length-1;i>=0;i--){
+			if(this.estimates[i]!=null)
+				res[i] = this.estimates[i].getLogEstimate();
+		}
 		return res;
 	}
 	
@@ -238,7 +247,6 @@ public class Hope implements Solver{
 		  lowValues[i] = current.getEstimate();
 		  currentIntv.diff += current.getArea((highValues[i]-lowValues[i]), logWidth);
 	  }
-	  System.out.print(this.reportEstimates());
 	  
 	  if(highSum/lowSum<3){
 		  //early stop

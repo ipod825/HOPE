@@ -24,13 +24,13 @@ public class Exps{
 	
 	public static void main(String args[]) throws IOException{
 		Exps exp = new Exps();
-		exp.timeoutExp(30, OptimizerType.TWO_THIRD);
+		exp.timeoutExp(10, OptimizerType.TWO_THIRD);
 //		exp.constraintExp();
 //		exp.constraintTimeoutExp();
 	}
 	
 	public void hammingWeightExp(){
-		PEG peg = new PEG();
+//		PEG peg = new PEG();
 		
 		HashMap<Integer, Integer> count = new HashMap<Integer, Integer>(40);
 		for(int i=1;i<=40;++i)
@@ -190,20 +190,18 @@ public class Exps{
 		CodeType codeType= CodeType.PEG;
 		
 		String res = null;
-		
+		OptimizerParams params = new OptimizerParams();
 		switch(alg){
 			case WISH:
 				System.out.println("TimeoutExp: WISH");
-//				Wish wish = new Wish(timeLimit);
-//				res = this.timeoutExpAux(dataDir, wish);
-				OptimizerParams pwish = new OptimizerParams().timeLimit(timeLimit).codeType(CodeType.DENSE);
-				Hope wish = new Hope(sampleSize, optimizerType, pwish, false);
+				params.timeLimit(timeLimit);
+				Wish wish = new Wish(sampleSize, params);
 				res = this.timeoutExpAux(dataDir, wish);
 				outputPath += "wish";
 				break;
 			case HOPE:
 				System.out.println("TimeoutExp: HOPE");
-				OptimizerParams params = new OptimizerParams().timeLimit(timeLimit).codeType(codeType);
+				params.timeLimit(timeLimit).codeType(codeType);
 				Hope hope = new Hope(sampleSize, optimizerType, params);
 				res = this.timeoutExpAux(dataDir, hope);
 				res += hope.reportEstimates();

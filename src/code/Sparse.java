@@ -83,6 +83,7 @@ public class Sparse{
 	}
 		
 	public  boolean[][] generate(int numVars, int numConstraints){
+		assert numConstraints<=numVars;
 		if(numConstraints<=0 || numVars <=0){
 			return null;
 		}

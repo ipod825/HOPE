@@ -21,11 +21,12 @@ public class PEG{
 	public static int startRPEG = 14;
 	public static int[] regDeg = {38,27,25,24,23,21,20,19,19,18,17,16,16,15,15,14,14};
 	
-	public  boolean[][] generate(int numVars, int numConstraint){
+	public  boolean[][] generate(int numVars, int numConstraints){
+		assert numConstraints<=numVars;
 		String path=null;
 		
 		try {
-			path = generateDegreeFile(numVars, numConstraint);
+			path = generateDegreeFile(numVars, numConstraints);
 		} catch (ExecuteException e1) {
 			System.out.println("Fail to generate LDPC!! Dense matrix will be used");
 			return null;
