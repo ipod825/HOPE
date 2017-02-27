@@ -1,3 +1,4 @@
+package hope;
 import java.io.BufferedReader;
 import java.io.File;
 import java.io.FileReader;
@@ -95,7 +96,7 @@ public class LDPCTools {
 			generatePEGRegDegree(deg);
 			path = generateRegularDegreeFile(n,d,deg);
 		} catch (ExecuteException e1) {
-			System.out.println("Fail to generate LDPC!! Dense matrix will be used");
+			e1.printStackTrace();
 			return fallbackMatrix;
 		} catch (IOException e1) {
 			e1.printStackTrace();

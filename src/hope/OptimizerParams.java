@@ -1,3 +1,6 @@
+package hope;
+
+import code.CodeType;
 
 public class OptimizerParams {
 	private int _timeLimit;

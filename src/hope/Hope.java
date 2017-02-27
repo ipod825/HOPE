@@ -1,12 +1,20 @@
+package hope;
 import java.util.Arrays;
 import java.util.Date;
+
+import problem.Ising;
+import problem.Problem;
+
+import utils.LoopBody;
+import utils.Parallel;
+
+import code.CodeType;
 
 
 public class Hope implements Solver{
 //	private static final String testpath = Config.rootDir+"problems/timeout/grid_attractive_n10_w1.0_f0.1.uai";
 	private static final String testpath = Config.rootDir+"problems/test/grid_attractive_n3_w1.0_f1.0.uai";
 
-	private Optimizer[] optimizers;
 	Estimate[] estimates;
 	
 	private boolean earlyStop;
@@ -61,7 +69,7 @@ public class Hope implements Solver{
 			
 			long start = new Date().getTime();
 			Hope hope = new Hope(sampleSize, optimizerType, params);
-			double est = hope.solve(testpath);
+			double est = hope.solve(new Ising(testpath));
 			long end = new Date().getTime();
 			System.out.println("time:"+(end-start)/1000);
 			System.out.println("est:"+Math.log(est));
@@ -70,77 +78,78 @@ public class Hope implements Solver{
 		}
 	}
   
-	public double solve(String path){
+	public double solve(Problem problem){
 		//initial run(unconstrained, full domain)
-		Optimizer optimizer = this.getOptimizer();
-		optimizer.estimate(path, Optimizer.FULL_DOMAIN);
-		int fullDim = optimizer.getOriginalDim();
+		int fullDim = problem.getNumVar();
+		
 		this.estimates = new Estimate[fullDim+1];
-		double max = optimizer.getOptimalValue();
-		estimates[0] = new Estimate(max);
+		
+		// No-constraint, only need to optimize once
+		estimates[0] = this.estimateQuantile(problem, 0, 1);
+		
 		if(this.earlyStop){
-			estimates[fullDim] = estimateQuantile(path, fullDim, 0, sampleSize);
+			estimates[fullDim] = estimateQuantile(problem, fullDim);
 			EarlyStopResult result = null;
 			while(! (result=earlyStop()).earlyStop() ){
 				Interval current = result.intv;
 				int d = (current.end+current.start)/2;
-				estimates[d] = this.estimateQuantile(path, fullDim, fullDim-d, sampleSize);
+				estimates[d] = this.estimateQuantile(problem, d);
 			}
 			return result.estZ;
 		}
 		else{
 			for(int d=1;d<fullDim+1;++d)
-				estimates[d] = this.estimateQuantile(path, fullDim, fullDim-d, sampleSize);
+				estimates[d] = this.estimateQuantile(problem, d);
 			//TODO
 			return 0;
 		}
 	}
 	
-	public Estimate estimateQuantile(String path, int fullDim, int reducedDim, int sampleSize){
-		double[] samples = new double[sampleSize];
-		this.optimizers = new Optimizer[sampleSize];
-		for(int t=0;t<sampleSize;t++)
-			this.optimizers[t] = this.getOptimizer(fullDim, reducedDim);
+	public Estimate estimateQuantile(final Problem problem, final int numConstraint){
+		return this.estimateQuantile(problem, numConstraint, this.sampleSize);
+	}
+	public Estimate estimateQuantile(final Problem problem, final int numConstraint, final int sampleSize){
+		final int fullDim = problem.getNumVar();
 		
-		if(this.optimizers[0] instanceof LSOptimizer){
+		final double[] samples = new double[sampleSize];
+		final Optimizer[] optimizers = new Optimizer[sampleSize];
+		for(int i=0;i<sampleSize;i++)
+			optimizers[i] = this.getOptimizer(fullDim, fullDim - numConstraint);
+		
+		System.out.print("Constraints: "+numConstraint+" ");
+		optimizers[0].reportParams();
+		
+		if(optimizers[0] instanceof LSOptimizer){
 			// LocalSolver can not be parralized
-			for(int i=0;i<sampleSize;i++)
-				this.optimizers[i].estimate(path, fullDim);
+			for(int i=0;i<sampleSize;i++){
+				samples[i] = optimizers[i].estimate(problem, numConstraint);
+			}
 		}else{
-			final int f = fullDim;
-			final String p = path;
 			Parallel.For(0, sampleSize, new LoopBody <Integer>(){
 				public void run(Integer i){
-					optimizers[i].estimate(p, f);
+					samples[i] = optimizers[i].estimate(problem, numConstraint); 
 				}
-			});
+			});	
 		  }
-		  
-		  for(int i=0;i<sampleSize;i++)
-			  samples[i]=optimizers[i].getOptimalValue();
 		  Arrays.sort(samples);
 		  System.out.println("Estimates: "+Arrays.toString(samples));
 		  return  new Estimate(samples[sampleSize/2]);
 	  }
 	  
 	  
-	public Optimizer getOptimizer(){
-		return this.getOptimizer(-1, -1);
-	}
-	  
 	public Optimizer getOptimizer(int fullDim, int reducedDim){
 		OptimizerType optimizerType = this.optimizerType;
 		if(optimizerType==OptimizerType.TWO_THIRD){
 			double r = reducedDim/(double)fullDim;
-			if(fullDim==-1 || r*3>2 )
+			if(fullDim==reducedDim || r*3>2 )
 				optimizerType = OptimizerType.CPLEX;
 			else
 				optimizerType = OptimizerType.LS;
 		}
 		if(optimizerType==OptimizerType.CPLEX)
-			return new CplexOptimizer(this.params, reducedDim);
+			return new CplexOptimizer(this.params);
 		else
-			return new LSOptimizer(this.lsParams, reducedDim);
+			return new LSOptimizer(this.lsParams);
 	}
 	  
 	  

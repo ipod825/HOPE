@@ -1,8 +1,11 @@
+package hope;
+
 import java.io.File;
 import java.io.FileNotFoundException;
 import java.io.IOException;
 import java.io.PrintWriter;
 import java.util.Date;
+import java.util.HashMap;
 import java.util.LinkedList;
 import java.util.List;
 import java.util.concurrent.Callable;
@@ -11,22 +14,39 @@ import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 import java.util.concurrent.Future;
 
+import problem.Ising;
+import problem.Problem;
+import code.CodeType;
+import code.PEG;
+
 
 public class Exps{
 	
 	public static void main(String args[]) throws IOException{
 		Exps exp = new Exps();
-//		exp.timeoutExp(60, OptimizerType.TWO_THIRD);
+		exp.timeoutExp(30, OptimizerType.TWO_THIRD);
 //		exp.constraintExp();
-		exp.constraintTimeoutExp();
+//		exp.constraintTimeoutExp();
 	}
 	
+	public void hammingWeightExp(){
+		PEG peg = new PEG();
+		
+		HashMap<Integer, Integer> count = new HashMap<Integer, Integer>(40);
+		for(int i=1;i<=40;++i)
+			count.put(i, 0);
+		
+		for(long i=1;i<1L<<40;++i){
+			int c = Long.bitCount(i);
+			count.put(c, count.get(c)+1);
+		}
+	}
 	
 	public void constraintExp() throws FileNotFoundException{
-		final String problem = Config.rootDir+"problems/timeout/grid_attractive_n10_w1.0_f0.1.uai";
+		final Problem problem = new Ising(Config.rootDir+"problems/timeout/grid_attractive_n10_w1.0_f0.1.uai");
 		
 		final int timeLimit = 30;
-		final int sampleSize = 9;
+		final int sampleSize = 10;
 		
 		ExecutorService executorService = Executors.newFixedThreadPool(3);
 		Future<double[]> future1 = executorService.submit(new Callable<double[]>(){
@@ -56,6 +76,7 @@ public class Exps{
 			    }
 		});
 		
+		
 		double[] sparseEstimates=null;
 		double[] denseEstimates=null;
 		double[] affineEstimates=null;
@@ -71,9 +92,9 @@ public class Exps{
 		executorService.shutdown();
 		
 		PrintWriter out = new PrintWriter(Config.outputDir+"constraint.csv");
-		out.write("Constraints,Dense Parity,Sparse Parity,Affine Map\n");
+		out.write("Constraints,Affine Map,Dense Parity,Sparse Parity\n");
 		for(int i=0; i<denseEstimates.length;++i){
-			out.write(i+","+denseEstimates[i]+","+sparseEstimates[i]+","+affineEstimates[i]+"\n");
+			out.write(i+","+affineEstimates[i]+","+denseEstimates[i]+","+sparseEstimates[i]+"\n");
 		}
 		out.close();
 	}
@@ -81,12 +102,12 @@ public class Exps{
 	
 	
 	public void constraintTimeoutExp() throws FileNotFoundException{
-		final String problem = Config.rootDir+"problems/timeout/grid_attractive_n10_w1.0_f0.1.uai";
+		final Problem problem = new Ising(Config.rootDir+"problems/timeout/grid_attractive_n10_w1.0_f0.1.uai");
 		
 		final int[] timeLimits = {30, 120, 240, 360, 480, 600};
 //		final int[] timeLimits = {30, 120};
-		final int[] numConstraints = {16, 50};
-		final int sampleSize = 9;
+		final int[] numConstraints = {50, 20};
+		final int sampleSize = 10;
 		final int numVars = 100;
 		
 		ExecutorService executorService = Executors.newFixedThreadPool(3);
@@ -99,14 +120,14 @@ public class Exps{
 					    public Double call()  {
 						    OptimizerParams params = new OptimizerParams().timeLimit(t).codeType(CodeType.SPARSE);
 						    Hope hope = new Hope(sampleSize, OptimizerType.CPLEX,  params, false);
-						    return hope.estimateQuantile(problem, numVars, reducedDim, sampleSize).getLogEstimate();
+						    return hope.estimateQuantile(problem, reducedDim).getLogEstimate();
 					    }
 				});
 				Future<Double> future2 = executorService.submit(new Callable<Double>(){
 					    public Double call()  {
 						    OptimizerParams params = new OptimizerParams().timeLimit(t).codeType(CodeType.DENSE);
 						    Hope hope = new Hope(sampleSize, OptimizerType.CPLEX,  params, false);
-						    return hope.estimateQuantile(problem, numVars, reducedDim, sampleSize).getLogEstimate();
+						    return hope.estimateQuantile(problem, reducedDim).getLogEstimate();
 					    }
 				});				
 				futures.add(future1);
@@ -116,7 +137,7 @@ public class Exps{
 						    public Double call()  {
 							    OptimizerParams params = new OptimizerParams().timeLimit(t).codeType(CodeType.PEG);
 							    Hope hope = new Hope(sampleSize, OptimizerType.LS,  params, false);
-							    return hope.estimateQuantile(problem, numVars, reducedDim, sampleSize).getLogEstimate();
+							    return hope.estimateQuantile(problem, reducedDim).getLogEstimate();
 						    }
 					});
 					futures.add(future3);
@@ -146,12 +167,12 @@ public class Exps{
 		executorService.shutdown();
 		
 		PrintWriter out = new PrintWriter(Config.outputDir+"constraintTimeout.csv");
-		out.write(String.format("Timeout,Sparse%1$d,Sparse%2$d,Dense%1$d,Dense%2$d,Affine%1$d,Affine%2$d\n",
+		out.write(String.format("Timeout,Affine Map 30 sec (i=%1$d), Sparse Parity (i=%1$d), Dense (i=%1$d), " +
+				"Affine Map 30 sec (i=%2$d), Sparse Parity (i=%2$d), Dense (i=%2$d)\n",
 				numConstraints[0], numConstraints[1]));
 		for(int t=0; t<timeLimits.length;++t){
-			out.write(timeLimits[t]+","+sparseEstimates[0][t]+","+sparseEstimates[1][t]+","
-						+denseEstimates[0][t]+","+denseEstimates[1][t]+","
-						+affineEstimates[0]+","+affineEstimates[1]+"\n");
+			out.write(timeLimits[t]+","+affineEstimates[0]+","+sparseEstimates[0][t]+","+denseEstimates[0][t]+","
+					+affineEstimates[1]+sparseEstimates[1][t]+","+denseEstimates[1][t]+"\n");
 		}
 		out.close();
 	}
@@ -206,7 +227,7 @@ public class Exps{
 			String fileName = f.getName();
 			if(fileName.endsWith(".uai")){
 				long start = new Date().getTime();
-				double estimate = solver.solve(f.getAbsolutePath());
+				double estimate = solver.solve(new Ising(f.getAbsolutePath()));
 				long end = new Date().getTime();
 				result.append(f.getName()).append(",");
 				result.append(Math.log(estimate)).append(",");

@@ -54,19 +54,19 @@ class Wish(object):
                 samplesize = 1 if i==0 else self.samplesize
                 for t in range(1, samplesize+1):
                     logfilename = '{}.xor{}.loglen{}.{}.ILOGLUE.uai.LOG'.format(os.path.basename(file_name), i, 0, t)
-                    os.system('timeout {} {} -paritylevel 1 -number {} {} > {}'.format(self.timeout, WH_cplex, i, path, log_dir+"/"+ logfilename))
+                    os.system('timeout {} {} -paritylevel 1 -number {} -seed 10 {} > {}'.format(self.timeout, WH_cplex, i, path, log_dir+"/"+ logfilename))
 
         else:
             logfilename = '{}.xor{}.loglen{}.{}.ILOGLUE.uai.LOG'.format(os.path.basename(file_name), 0, 0, 1)
-            os.system('timeout {} {} -paritylevel 1 -number {} {} > {}'.format(self.timeout, WH_cplex, 0, path, log_dir+"/"+ logfilename))
+            os.system('timeout {} {} -paritylevel 1 -number {} -seed 10 {} > {}'.format(self.timeout, WH_cplex, 0, path, log_dir+"/"+ logfilename))
 
             cmds = []
             for i in range(1,num_var+1):
                 for t in range(1,self.samplesize+1):
                     logfilename = '{}.xor{}.loglen{}.{}.ILOGLUE.uai.LOG'.format(os.path.basename(file_name), i, 0, t)
-                    cmds.append('timeout {} {} -paritylevel 1 -number {} {} > {}'.format(self.timeout, WH_cplex, i, path, log_dir+"/"+ logfilename))
+                    cmds.append('timeout {} {} -paritylevel 1 -number {} -seed 10 {} > {}'.format(self.timeout, WH_cplex, i, path, log_dir+"/"+ logfilename))
 
-            Parallel(n_jobs=10)(delayed(estimateOne)(i-1, t-1, self.samplesize, cmds) for i in range(1,num_var+1) for t in range(1,self.samplesize+1))
+            Parallel(n_jobs=20)(delayed(estimateOne)(i-1, t-1, self.samplesize, cmds) for i in range(1,num_var+1) for t in range(1,self.samplesize+1))
 
         log_est = process_logs_cplex_LB(log_dir)
         # process_logs_cplex_UB(self.outfolder)

@@ -1,3 +1,4 @@
+package hope;
 import org.apache.commons.exec.LogOutputStream;
 
 class CmdOutputHandler extends LogOutputStream{

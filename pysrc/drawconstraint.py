@@ -9,7 +9,7 @@ inpFile = '../output/constraint.csv'
 
 df = pd.DataFrame.from_csv(inpFile)
 df /= math.log(2)
-df.plot(style=['-^','-o','-s', '-v'])
+df.plot(style=['g.','r-^','b-o'])
 plt.xlabel('Number of parity constraints')
 plt.ylabel('Best solution')
 plt.show()

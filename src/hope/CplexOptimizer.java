@@ -1,3 +1,5 @@
+package hope;
+
 import java.io.IOException;
 
 import org.apache.commons.exec.CommandLine;
@@ -6,15 +8,15 @@ import org.apache.commons.exec.Executor;
 import org.apache.commons.exec.LogOutputStream;
 import org.apache.commons.exec.PumpStreamHandler;
 
+import problem.Problem;
+
+import code.Code;
+
+
 public class CplexOptimizer extends Optimizer{
-	private int mNumVars=0;
-	private double mOptValue=0;
+	
 	public CplexOptimizer(OptimizerParams params) {
 		super(params);
-	}
-	
-	public CplexOptimizer(OptimizerParams params, int reducedDim) {
-		super(params, reducedDim);
 	}
 
 	private String convertMatrixToString(boolean[][] matrix){
@@ -91,66 +93,18 @@ public class CplexOptimizer extends Optimizer{
 	}
 
 	@Override
-	public void estimate(String path, int numVars) {
-		int m;
+	public double estimate(Problem problem, int numConstraint) {
+		int numVars = problem.getNumVar();
+		
 		boolean elim;
-		boolean[][] matrix=null;
-		if(numVars <0 ){
-			//full dimension
-			matrix=null;
-			m=0;
-			elim=true;
-		}else if(this.params.codeType()==CodeType.DENSE){
-			matrix=null;
-			m=numVars-this.mReducedDim;
-			elim=true;
-		}
-		else if(this.params.codeType()==CodeType.SPARSE){
-			m=numVars-this.mReducedDim;
-			double d = Math.min(0.5, 1-Math.pow((double)m/100, 0.28)+0.05);
-			matrix=BinaryMatrixHelper.getRandomMatrix(m, numVars,  d);
+		boolean[][] matrix=Code.generate(this.params.codeType(), numVars, numConstraint);
+		if(matrix==null)
+			elim=true;	
+		else
 			elim=false;
-		}
-		else if(this.params.codeType()==CodeType.PEG_REGULAR){
-			m=numVars-this.mReducedDim;
-			matrix = LDPCTools.getRPEGMatrix(numVars, m, false);
-			if(matrix==null){
-				elim=true;	
-			}else{
-				elim=false;
-			}
-			BinaryMatrixHelper.printMatrix(matrix);
-		}else{
-			m=numVars-this.mReducedDim;
-			matrix = LDPCTools.getPEGMatrix(numVars, m, false);
-			if(matrix==null){
-				elim=true;	
-			}else{
-				elim=false;
-			}
-		}
+		
 		CplexOutput cpo = new CplexOutput();
-		callCplex(path, this.params.timeLimit(), m, matrix, cpo, elim);
-		this.mOptValue = cpo.getOptimalValue()*Math.log(10);
-		this.mNumVars = cpo.getNumVars();
+		callCplex(problem.getPath(), this.params.timeLimit(), numConstraint, matrix, cpo, elim);
+		return cpo.getOptimalValue()*Math.log(10);
 	}
-	@Override
-	public double getOptimalValue() {
-		return this.mOptValue;
-	}
-	@Override
-	public int getOriginalDim() {
-		return this.mNumVars;
-	}
-
-	@Override
-	public String getSolver() {
-		return "CPLEX";
-	}
-
-	@Override
-	public double getRuntime() {
-		return 0;
-	}
-
 }

@@ -1,4 +1,4 @@
 #!/bin/sh
-
-javac -sourcepath src -cp "bin/*:lib/*:/opt/localsolver_6_5/bin/localsolver.jar" -d bin src/*
-java -cp "bin:lib/*:/opt/localsolver_6_5/bin/localsolver.jar" $1
+find ./src  -name "*.java" > source.txt
+javac @source.txt -cp "bin/*:lib/*:/opt/localsolver_6_5/bin/localsolver.jar" -d bin
+java -cp "bin/:lib/*:/opt/localsolver_6_5/bin/localsolver.jar" hope.$1
