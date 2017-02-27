@@ -6,11 +6,11 @@ import java.io.InputStreamReader;
 import java.nio.file.Files;
 import java.nio.file.Paths;
 
-class CmdOutputHandler{
+class CmdExecutor{
 
 	private String prefix;
 	
-	public CmdOutputHandler(String prefix){
+	public CmdExecutor(String prefix){
 		this.prefix = prefix;
 	}
 	
@@ -19,7 +19,7 @@ class CmdOutputHandler{
 	}
 	
 	public double runCmd(String cmd, String outputPath){
-		double res = Double.NaN;
+		double res = Double.NEGATIVE_INFINITY;
 		try {
 			Process p = Runtime.getRuntime().exec(cmd);
 			if(outputPath!=null){
@@ -41,7 +41,6 @@ class CmdOutputHandler{
 		} catch (IOException e) {
 			e.printStackTrace();
 		}
-		assert !Double.isNaN(res);
 		return res;
 	}	
 }

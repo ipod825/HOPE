@@ -50,7 +50,7 @@ public class LSOptimizer extends Optimizer{
 		LSModel model = localsolver.getModel();
 		LSProblem prob=null;
 		//TODO why 0?
-		double res = Double.NaN;;
+		double res = Double.NEGATIVE_INFINITY;
 
 		int fullDim = problem.getNumVar();
 		int reducedDim = fullDim-numConstraint;
@@ -67,7 +67,6 @@ public class LSOptimizer extends Optimizer{
 		res = sol.getDoubleValue(prob.originalObjective);	
 
 		localsolver.delete();
-		assert !Double.isNaN(res);
 		return res;
 	}
 	

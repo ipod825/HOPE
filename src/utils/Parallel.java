@@ -7,7 +7,7 @@ import java.util.concurrent.Executors;
 import java.util.concurrent.Future;
 
 public class Parallel {
-	    static final int iCPU = Runtime.getRuntime().availableProcessors();
+	    public static final int iCPU = Runtime.getRuntime().availableProcessors();
 	    public static <T> void ForEach(Iterable <T> parameters, final LoopBody<T> loopBody) {
 		    ExecutorService executor = Executors.newFixedThreadPool(iCPU);
 		    List<Future<?>> futures  = new LinkedList<Future<?>>();
@@ -30,7 +30,11 @@ public class Parallel {
 	    }
 	
 	    public static void For(int start, int stop, final LoopBody<Integer> loopBody) {
-		    ExecutorService executor = Executors.newFixedThreadPool(iCPU);
+		    Parallel.For(start, stop, iCPU, loopBody);
+	    }
+	    
+	    public static void For(int start, int stop, int numThread, final LoopBody<Integer> loopBody) {
+		    ExecutorService executor = Executors.newFixedThreadPool(numThread);
 		    List<Future<?>> futures  = new LinkedList<Future<?>>();
 		    for (int i=start; i<stop; i++) {
 			    final Integer k = i;

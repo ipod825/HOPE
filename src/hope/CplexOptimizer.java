@@ -37,12 +37,14 @@ public class CplexOptimizer extends Optimizer{
 		cmd += "  -paritylevel 1";
 		cmd += " -timelimit " + timeLimit;
 		cmd += " -number " + numConstraint;
+		if(this.params.seed()!=Integer.MIN_VALUE)
+            cmd += " -seed " + this.params.seed();
 		if(!elim)
 			cmd += " -skipelim";
 		if(matrixStr!=null)
 			cmd += " -matrix " + matrixStr;
 		cmd += " " + path;
-		CmdOutputHandler handler = new CmdOutputHandler("Solution value log10lik = ");
+		CmdExecutor handler = new CmdExecutor("Solution value log10lik = ");
 		return handler.runCmd(cmd, this.outputPath);
 	}
 
