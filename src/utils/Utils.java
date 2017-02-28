@@ -3,6 +3,8 @@ import java.io.BufferedReader;
 import java.io.File;
 import java.io.FileReader;
 import java.io.IOException;
+import java.util.Arrays;
+import java.util.Date;
 import java.util.StringTokenizer;
 
 
@@ -56,4 +58,24 @@ public class Utils {
 		int sep = path.lastIndexOf("/");
 		return path.substring(sep + 1);
 	}
+
+	public static long getDate(){
+        return new Date().getTime();
+	}
+
+	public static long getThreadID(){
+	    return Thread.currentThread().getId();
+	}
+
+    public static double median(double[] arr){
+        Arrays.sort(arr);
+        int middle = arr.length/2;
+        if (arr.length%2 == 1) {
+            return arr[middle];
+        } else {
+            return (arr[middle-1] + arr[middle]) / 2.0;
+        }
+    }
+
+
 }

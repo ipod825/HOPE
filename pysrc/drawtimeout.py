@@ -29,6 +29,7 @@ for alg in df:
     df[alg] = (df[alg] - exact_ans)/math.log(2)
 df.plot(style=['-^','-o','-s', '-v'])
 plt.xticks(timeout)
+plt.yticks(range(-14,2,2))
 plt.xlabel('Timeout(seconds)')
 plt.ylabel('Log(Z)')
 plt.ylim(min(df.min())-1, max(df.max())+1)

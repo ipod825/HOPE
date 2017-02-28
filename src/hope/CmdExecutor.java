@@ -1,7 +1,9 @@
 package hope;
 
 import java.io.BufferedReader;
+import java.io.FileInputStream;
 import java.io.IOException;
+import java.io.InputStream;
 import java.io.InputStreamReader;
 import java.nio.file.Files;
 import java.nio.file.Paths;
@@ -22,20 +24,25 @@ class CmdExecutor{
 		double res = Double.NEGATIVE_INFINITY;
 		try {
 			Process p = Runtime.getRuntime().exec(cmd);
+			InputStream istream = null;
+
 			if(outputPath!=null){
 				Files.copy(p.getInputStream(), Paths.get(outputPath));
-				return res;
+				istream = new FileInputStream(outputPath);
 			}
-			BufferedReader stdInput = new BufferedReader(new InputStreamReader(p.getInputStream()));
+			else{
+			    istream = p.getInputStream();
+			}
+			BufferedReader reader = new BufferedReader(new InputStreamReader(istream));
 			
 			String line;
-			while ((line = stdInput.readLine()) != null) {
+			while ((line = reader.readLine()) != null) {
 				if(line.startsWith(prefix)){
 					res = Double.parseDouble(line.substring(prefix.length()));
 					break;
 				}
 			}
-			stdInput.close();
+			reader.close();
 		} catch (NumberFormatException e) {
 			e.printStackTrace();
 		} catch (IOException e) {

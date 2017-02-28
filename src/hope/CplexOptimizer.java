@@ -3,20 +3,15 @@ package hope;
 import problem.Problem;
 
 import code.Code;
+import utils.Utils;
 
 
 public class CplexOptimizer extends Optimizer{
-	private String outputPath;
-	
+
 	public CplexOptimizer(OptimizerParams params) {
-		this(params, null);
+		super(params);
 	}
 
-	public CplexOptimizer(OptimizerParams params, String outputPath) {
-		super(params);
-		this.outputPath = outputPath;
-	}
-	
 	private String convertMatrixToString(boolean[][] matrix){
 		if(matrix==null){
 			return null;
@@ -45,7 +40,13 @@ public class CplexOptimizer extends Optimizer{
 			cmd += " -matrix " + matrixStr;
 		cmd += " " + path;
 		CmdExecutor handler = new CmdExecutor("Solution value log10lik = ");
-		return handler.runCmd(cmd, this.outputPath);
+
+        String outputPath = null;
+		if(this.params.logPath()!=null){
+            outputPath = this.params.logPath() + Utils.basename(path) + String.format(".%d.%d%d", numConstraint, Utils.getThreadID(), Utils.getDate()) ;
+		}
+
+		return handler.runCmd(cmd, outputPath);
 	}
 
 

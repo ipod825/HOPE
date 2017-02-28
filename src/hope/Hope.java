@@ -7,6 +7,7 @@ import problem.Problem;
 
 import utils.LoopBody;
 import utils.Parallel;
+import utils.Utils;
 
 import code.CodeType;
 
@@ -15,7 +16,7 @@ public class Hope implements Solver{
     //  private static final String testpath = Config.rootDir+"problems/timeout/grid_attractive_n10_w1.0_f0.1.uai";
     private static final String testpath = Config.rootDir+"problems/test/grid_attractive_n3_w1.0_f1.0.uai";
 
-    Estimate[] estimates;
+    private double[] estimates;
 
     private boolean earlyStop;
     protected int sampleSize;
@@ -81,7 +82,10 @@ public class Hope implements Solver{
         //initial run(unconstrained, full domain)
         int fullDim = problem.getNumVar();
 
-        this.estimates = new Estimate[fullDim+1];
+        this.estimates = new double[fullDim+1];
+        for(int i=0; i<fullDim+1; i++)
+            this.estimates[i] = Double.NaN;
+
 
         // No-constraint, only need to optimize once
         estimates[0] = this.estimateQuantile(problem, 0, 1);
@@ -90,14 +94,14 @@ public class Hope implements Solver{
             estimates[fullDim] = estimateQuantile(problem, fullDim);
             EarlyStopResult result = null;
             int progress=1;
-            while(! (result=earlyStop()).earlyStop() ){
+            while(! (result=earlyStop()).earlyStop()){
                 Interval current = result.intv;
                 int d = (current.end+current.start)/2;
                 estimates[d] = this.estimateQuantile(problem, d);
                 System.out.printf("%d/%d estimated...\n", progress++, fullDim);
             }
             System.out.print(this.reportEstimates());
-            return Math.log(result.estZ);
+            return result.logEst;
         }
         else{
             Parallel.For(1, fullDim+1, Parallel.iCPU/sampleSize, new LoopBody<Integer>(){
@@ -105,23 +109,23 @@ public class Hope implements Solver{
                     estimates[c] = estimateQuantile(problem, c);
                 }
             });
-            double curmax = estimates[0].getLogEstimate();
+            double curmax = estimates[0];
             for(int i=1; i<fullDim+1; i++){
-                double term = estimates[i].getLogEstimate() +(i-1)*Math.log(2);
+                double term = estimates[i]+(i-1)*Math.log(2);
                 curmax = term>curmax? term: curmax;
             }
-            double res = Math.exp(estimates[0].getLogEstimate()-curmax);
+            double res = Math.exp(estimates[0]-curmax);
             for(int i=1; i<fullDim+1; i++){
-                res += Math.exp(estimates[i].getLogEstimate()+(i-1)*Math.log(2)-curmax);
+                res += Math.exp(estimates[i]+(i-1)*Math.log(2)-curmax);
             }
             return Math.log(res)+curmax;
         }
     }
-
-    public Estimate estimateQuantile(final Problem problem, final int numConstraint){
+    
+    public double estimateQuantile(final Problem problem, final int numConstraint){
         return this.estimateQuantile(problem, numConstraint, this.sampleSize);
     }
-    public Estimate estimateQuantile(final Problem problem, final int numConstraint, final int sampleSize){
+    public double estimateQuantile(final Problem problem, final int numConstraint, final int sampleSize){
         final int fullDim = problem.getNumVar();
 
         final double[] samples = new double[sampleSize];
@@ -145,7 +149,7 @@ public class Hope implements Solver{
             });
         }
         double[] nsamples = this.removeInf(samples);
-        return  new Estimate(this.median(nsamples));
+        return Utils.median(nsamples);
     }
 
     public double[] removeInf(double[] arr){
@@ -161,17 +165,6 @@ public class Hope implements Solver{
         }
         return Arrays.copyOfRange(arr, i, arr.length);
     }
-
-    public double median(double[] arr){
-        Arrays.sort(arr);
-        int middle = arr.length/2;
-        if (arr.length%2 == 1) {
-            return arr[middle];
-        } else {
-            return (arr[middle-1] + arr[middle]) / 2.0;
-        }
-    }
-
 
     public Optimizer getOptimizer(int fullDim, int reducedDim){
         OptimizerType optimizerType = this.optimizerType;
@@ -190,20 +183,15 @@ public class Hope implements Solver{
 
 
     public double[] getLogEstimates(){
-        double[] res = new double[estimates.length];
-        for(int i=this.estimates.length-1;i>=0;i--){
-            if(this.estimates[i]!=null)
-                res[i] = this.estimates[i].getLogEstimate();
-        }
-        return res;
+        return this.estimates;
     }
 
     public String reportEstimates(){
         StringBuilder sb = new StringBuilder();
         int save=0;
         for(int i=this.estimates.length-1;i>=0;i--){
-            if(this.estimates[i]!=null)
-                sb.append("e").append(i).append(":").append(this.estimates[i].getEstimate()).append("\n");
+            if(!Double.isNaN(this.estimates[i]))
+                sb.append("e").append(i).append(":").append(this.estimates[i]).append("\n");
             else
                 ++save;
         }
@@ -214,11 +202,11 @@ public class Hope implements Solver{
 
     class EarlyStopResult{
         Interval intv;
-        double estZ;
+        double logEst;
 
-        public EarlyStopResult(Interval intv, double estZ){
+        public EarlyStopResult(Interval intv, double logEst){
             this.intv=intv;
-            this.estZ=estZ;
+            this.logEst=logEst;
         }
 
         public boolean earlyStop(){
@@ -239,72 +227,90 @@ public class Hope implements Solver{
         }
     }
 
+    private double calcLogArea(double logHeight, double logWidth){
+        return logHeight + logWidth * Math.log(2);
+    }
 
     private EarlyStopResult earlyStop(){
-        Estimate current = estimates[0];
-        double highSum=current.getArea(0);
-        double[] highValues = new double[estimates.length];
-        highValues[0]=current.getEstimate();
-        for(int i=0;i<estimates.length-1;i++){
-            if(estimates[i]!=null){
-                current = estimates[i];
-            }
-            highValues[i+1] = current.getEstimate();
-            highSum += current.getArea(i);
+        double[] logHighRectH= new double[estimates.length];
+        logHighRectH[0] = estimates[0];
+        for(int i=1;i<estimates.length;i++){
+            // If previous quantile is already estimated, use it, otherwise use earlier estimates.
+            if(!Double.isNaN(estimates[i-1]))
+                logHighRectH[i] = estimates[i-1];
+            else
+                logHighRectH[i] = logHighRectH[i-1];
         }
 
-        double lowSum=0;
-        double[] lowValues = new double[estimates.length];
-        Interval maxDiffIntv = new Interval(-1);
-        Interval currentIntv = null;
-        maxDiffIntv.end=estimates.length-1;
+        double[] logLowRectH= new double[estimates.length];
         for(int i=estimates.length-1;i>=0;i--){
-            //log width of current interval
-            int logWidth=i-1>=0?i-1:0;
-            if(estimates[i]!=null){
-                current = estimates[i];
-                if(i<estimates.length-1){
-                    currentIntv.start=i+1;
-                    if(currentIntv.diff>maxDiffIntv.diff && currentIntv.end>currentIntv.start){
-                        maxDiffIntv=currentIntv;
-                    }
+            if(!Double.isNaN(estimates[i]))
+                logLowRectH[i] = estimates[i];
+            else
+                logLowRectH[i] = logLowRectH[i+1];
+        }
+
+        double[] logHighAreas = new double[estimates.length];
+        double[] logLowAreas = new double[estimates.length];
+
+        logHighAreas[0] = this.calcLogArea(logHighRectH[0], 0);
+        for(int i=1; i<estimates.length; i++)
+            logHighAreas[i] = this.calcLogArea(logHighRectH[i], i-1);
+        
+        logLowAreas[0] = this.calcLogArea(logLowRectH[0],0);
+        for(int i=estimates.length-1;i>0;i--)
+            logLowAreas[i] = this.calcLogArea(logLowRectH[i],i-1);
+
+        
+        Interval maxDiffIntv = new Interval();
+        Interval currentIntv = new Interval(Math.exp(logHighAreas[estimates.length-1])-Math.exp(logLowAreas[estimates.length-1]));
+        currentIntv.end = estimates.length - 1;
+        for(int i=estimates.length-2;i>=0;i--){
+            if(!Double.isNaN(estimates[i])){
+                currentIntv.start=i+1;
+                if(currentIntv.diff>maxDiffIntv.diff && currentIntv.end>currentIntv.start){
+                    maxDiffIntv=currentIntv;
                 }
                 currentIntv = new Interval();
                 currentIntv.end = i;
             }
-            lowSum += current.getArea(logWidth);
-            lowValues[i] = current.getEstimate();
-            currentIntv.diff += current.getArea((highValues[i]-lowValues[i]), logWidth);
+            currentIntv.diff += Math.exp(logHighAreas[i])-Math.exp(logLowAreas[i]);
         }
 
-        if(highSum/lowSum<3){
-            //early stop
-            return new EarlyStopResult(null,(highSum+lowSum)/2);
+        // Interval maxDiffIntv = new Interval();
+        // Interval currentIntv = new Interval();
+        // currentIntv.start = 1;
+        // for(int i=1;i<=estimates.length-1;i++){
+        //     if(!Double.isNaN(estimates[i])){
+        //         currentIntv.end = i;
+        //         if(currentIntv.diff>maxDiffIntv.diff && currentIntv.end>currentIntv.start){
+        //             maxDiffIntv=currentIntv;
+        //         }
+        //         currentIntv = new Interval();
+        //         currentIntv.start = i+1;
+        //     }
+        //     currentIntv.diff += Math.exp(logHighAreas[i])-Math.exp(logLowAreas[i]);
+        // }
+
+        double logHighArea = logSumExp(logHighAreas);
+        double logLowArea = logSumExp(logLowAreas);
+        // A/B<3 => log(A)-lob(B)<log(3)
+        if(logHighArea-logLowArea<Math.log(3)){ 
+            // (A+B)/2 => log(A+B)-log(2)
+            return new EarlyStopResult(null,logSumExp(logHighArea, logLowArea)-Math.log(2));
         }
         return new EarlyStopResult(maxDiffIntv,0);
     }
 
-
-    class Estimate{
-        double value=0;
-
-        public Estimate(double value){
-            this.value=value;
+    public double logSumExp(double ... arr){
+        double curmax = Double.NEGATIVE_INFINITY;
+        for(double a: arr)
+            curmax = a>curmax? a: curmax;
+        
+        double res = 0;
+        for(double a: arr){
+            res += Math.exp(a-curmax);
         }
-
-        public double getLogEstimate(){
-            return this.value;
-        }
-
-        public double getEstimate(){
-            return Math.pow(Math.E, this.value);
-        }
-        public double getArea(int logWidth){
-            return this.getArea(this.getEstimate(), logWidth);
-        }
-
-        public double getArea(double est, int logWidth){
-            return est*Math.pow(2, logWidth);
-        }
+        return Math.log(res)+curmax;
     }
 }

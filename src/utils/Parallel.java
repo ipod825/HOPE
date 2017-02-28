@@ -34,6 +34,7 @@ public class Parallel {
 	    }
 	    
 	    public static void For(int start, int stop, int numThread, final LoopBody<Integer> loopBody) {
+	        numThread = numThread>0? numThread: 1;
 		    ExecutorService executor = Executors.newFixedThreadPool(numThread);
 		    List<Future<?>> futures  = new LinkedList<Future<?>>();
 		    for (int i=start; i<stop; i++) {

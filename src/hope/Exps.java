@@ -1,8 +1,11 @@
 package hope;
 
+import java.io.BufferedReader;
 import java.io.File;
+import java.io.FileInputStream;
 import java.io.FileNotFoundException;
 import java.io.IOException;
+import java.io.InputStreamReader;
 import java.io.PrintWriter;
 import java.util.Date;
 import java.util.HashMap;
@@ -10,12 +13,19 @@ import java.util.LinkedList;
 import java.util.List;
 import java.util.concurrent.Callable;
 import java.util.concurrent.ExecutionException;
+// import java.util.concurrent.ExecutionException;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 import java.util.concurrent.Future;
+import java.util.regex.Matcher;
+import java.util.regex.Pattern;
 
 import problem.Ising;
 import problem.Problem;
+
+import utils.Parallel;
+import utils.Utils;
+
 import code.CodeType;
 import code.PEG;
 
@@ -28,10 +38,10 @@ public class Exps{
 
     public static void main(String args[]) throws IOException{
         Exps exp = new Exps();
-        exp.timeoutExp(30, OptimizerType.TWO_THIRD, SolverType.WISH);
         // exp.timeoutExp(10, OptimizerType.TWO_THIRD, SolverType.HOPE);
-        //      exp.constraintExp();
-        //      exp.constraintTimeoutExp();
+        // exp.timeoutExp(10, OptimizerType.TWO_THIRD, SolverType.HOPE);
+        // exp.constraintExp();
+        exp.constraintTimeoutExp();
     }
 
     public void hammingWeightExp(){
@@ -90,78 +100,139 @@ public class Exps{
         final Problem problem = new Ising(Config.rootDir+"problems/timeout/grid_attractive_n10_w1.0_f0.1.uai");
 
         final int[] timeLimits = {30, 120, 240, 360, 480, 600};
-        //      final int[] timeLimits = {30, 120};
         final int[] numConstraints = {50, 20};
         final int sampleSize = 10;
-        final int numVars = 100;
-
-        ExecutorService executorService = Executors.newFixedThreadPool(3);
+        final int maxTimeLimit = timeLimits[timeLimits.length-1]+50;
+        int numThread = Parallel.iCPU/sampleSize;
+        if(numThread==0)
+            numThread = 1;
+        
+        ExecutorService executorService = Executors.newFixedThreadPool(numThread);
         List<Future<Double>> futures  = new LinkedList<Future<Double>>();
-        for(int numConstraint: numConstraints){
-            final int reducedDim = numVars - numConstraint;
-            for(int timeLimit: timeLimits){
-                final int t = timeLimit;
-                Future<Double> future1 = executorService.submit(new Callable<Double>(){
-                    public Double call()  {
-                        OptimizerParams params = new OptimizerParams().timeLimit(t).codeType(CodeType.SPARSE);
-                        Hope hope = new Hope(sampleSize, OptimizerType.CPLEX,  params, false);
-                        return hope.estimateQuantile(problem, reducedDim).getLogEstimate();
-                    }
-                });
-                Future<Double> future2 = executorService.submit(new Callable<Double>(){
-                    public Double call()  {
-                        OptimizerParams params = new OptimizerParams().timeLimit(t).codeType(CodeType.DENSE);
-                        Hope hope = new Hope(sampleSize, OptimizerType.CPLEX,  params, false);
-                        return hope.estimateQuantile(problem, reducedDim).getLogEstimate();
-                    }
-                });
-                futures.add(future1);
-                futures.add(future2);
-                if(timeLimit==30){
-                    Future<Double> future3 = executorService.submit(new Callable<Double>(){
-                        public Double call()  {
-                            OptimizerParams params = new OptimizerParams().timeLimit(t).codeType(CodeType.PEG);
-                            Hope hope = new Hope(sampleSize, OptimizerType.LS,  params, false);
-                            return hope.estimateQuantile(problem, reducedDim).getLogEstimate();
-                        }
-                    });
-                    futures.add(future3);
+        String dirPattern = Config.tmpDir+"%s%d"+"."+Utils.getDate()+"/";
+        for(final int numConstraint: numConstraints){
+            final String sparseDir = String.format(dirPattern, "sparse", numConstraint);
+            new File(sparseDir).mkdir();
+            Future<Double> future1 = executorService.submit(new Callable<Double>(){
+                public Double call(){
+                    OptimizerParams params = new OptimizerParams().timeLimit(maxTimeLimit).codeType(CodeType.SPARSE).logPath(sparseDir);
+                    Hope hope = new Hope(sampleSize, OptimizerType.CPLEX,  params);
+                    return hope.estimateQuantile(problem, numConstraint);
                 }
-
-            }
+            });
+            final String denseDir = String.format(dirPattern, "dense", numConstraint);
+            new File(denseDir).mkdir();
+            Future<Double> future2 = executorService.submit(new Callable<Double>(){
+                public Double call()  {
+                    OptimizerParams params = new OptimizerParams().timeLimit(maxTimeLimit).codeType(CodeType.DENSE).logPath(denseDir);
+                    Hope hope = new Hope(sampleSize, OptimizerType.CPLEX, params);
+                    return hope.estimateQuantile(problem, numConstraint);
+                }
+            });
+            Future<Double> future3 = executorService.submit(new Callable<Double>(){
+                public Double call()  {
+                    OptimizerParams params = new OptimizerParams().timeLimit(30).codeType(CodeType.PEG);
+                    Hope hope = new Hope(sampleSize, OptimizerType.LS,  params);
+                    return hope.estimateQuantile(problem, numConstraint);
+                }
+            });
+            futures.add(future1);
+            futures.add(future2);
+            futures.add(future3);
         }
 
         int ind = 0;
-        double[][] sparseEstimates= new double[numConstraints.length][timeLimits.length];
-        double[][] denseEstimates= new double[numConstraints.length][timeLimits.length];
         double[] affineEstimates= new double[numConstraints.length];
         for(int c=0; c<numConstraints.length;++c){
-            for(int t=0; t<timeLimits.length; ++t){
-                try {
-                    sparseEstimates[c][t] = futures.get(ind++).get();
-                    denseEstimates[c][t] = futures.get(ind++).get();
-                    if(timeLimits[t]==30)
-                        affineEstimates[c] = futures.get(ind++).get();
-                } catch (InterruptedException e) {
-                    e.printStackTrace();
-                } catch (ExecutionException e) {
-                    e.printStackTrace();
-                }
+            try {
+                futures.get(ind++).get();
+                futures.get(ind++).get();
+                affineEstimates[c] = futures.get(ind++).get();
+            } catch (InterruptedException e) {
+                e.printStackTrace();
+            } catch (ExecutionException e) {
+                e.printStackTrace();
             }
         }
         executorService.shutdown();
+
+        // double[] affineEstimates= new double[]{50.58664588956162,73.5182827976532};
+        double[][] sparseEstimates = constraintTimeoutAux(dirPattern, "sparse", sampleSize, numConstraints, timeLimits);
+        double[][] denseEstimates = constraintTimeoutAux(dirPattern, "dense", sampleSize, numConstraints, timeLimits);
 
         PrintWriter out = new PrintWriter(Config.outputDir+"constraintTimeout.csv");
         out.write(String.format("Timeout,Affine Map 30 sec (i=%1$d), Sparse Parity (i=%1$d), Dense (i=%1$d), " +
                     "Affine Map 30 sec (i=%2$d), Sparse Parity (i=%2$d), Dense (i=%2$d)\n",
                     numConstraints[0], numConstraints[1]));
         for(int t=0; t<timeLimits.length;++t){
-            out.write(timeLimits[t]+","+affineEstimates[0]+","+sparseEstimates[0][t]+","+denseEstimates[0][t]+","
-                    +affineEstimates[1]+sparseEstimates[1][t]+","+denseEstimates[1][t]+"\n");
+            out.write(timeLimits[t]+","+affineEstimates[0]+","+sparseEstimates[0][t]+","+denseEstimates[0][t]+","+affineEstimates[1]+","+sparseEstimates[1][t]+","+denseEstimates[1][t]+"\n");
         }
         out.close();
     }
 
+    public double[][] constraintTimeoutAux(String dirPattern, String code, int sampleSize, int[] numConstraints, int[] timeLimits){
+        double[][] res = new double[numConstraints.length][timeLimits.length];
+
+        for(int c=0;c<numConstraints.length;++c){
+            File dir = new File(String.format(dirPattern, code, numConstraints[c]));
+            File[] files = dir.listFiles();
+            double [][] loglik = new double[timeLimits.length][files.length];
+            for(int i=0;i<files.length;++i){
+                double[] loglikPerFile = this.constraintTimeoutAux2(files[i], timeLimits);
+                for(int t=0;t<timeLimits.length;++t){
+                    loglik[t][i] = loglikPerFile[t];
+                }
+            }
+            for(int t=0;t<timeLimits.length;++t){
+                res[c][t] = Utils.median(loglik[t]); 
+            }
+        }
+        return res;
+    }
+
+    public double[] constraintTimeoutAux2(File file, int[] timeLimits){
+        double[] res = new double[timeLimits.length];
+        for(int i=0; i<timeLimits.length; i++){
+            res[i] = Double.NaN;
+        }
+        Pattern sr = Pattern.compile("\\s+\\d+\\s+\\d+\\s+\\d+.\\d+\\s+\\d+\\s+(-?\\d+.\\d+)");
+        Pattern tr = Pattern.compile("Elapsed real time =\\s*(\\d+.\\d+)");
+        Matcher m;
+
+        String line;
+        double log10lik = 0;
+        int ind = 0;
+        double timeDiff = Double.POSITIVE_INFINITY;
+        try {
+            FileInputStream istream = new FileInputStream(file);
+            BufferedReader reader = new BufferedReader(new InputStreamReader(istream));
+            while ((line = reader.readLine()) != null) {
+                if ((m=sr.matcher(line)).find()){
+                    log10lik = Double.parseDouble(m.group(1));
+                    log10lik+=0;
+                }else if((m=tr.matcher(line)).find()){
+                    double t = Double.parseDouble(m.group(1));
+                    if(Math.abs(timeLimits[ind]-t)<timeDiff){
+                        res[ind] = log10lik*Math.log(10);
+                        timeDiff = Math.abs(timeLimits[ind]-t);
+                    }
+                    if(t>timeLimits[ind]){
+                        ++ind;
+                        timeDiff = Double.POSITIVE_INFINITY;
+                    }
+                    if(ind==timeLimits.length)
+                    	break;
+                }
+            }
+            reader.close();
+            if(ind==timeLimits.length-1)
+                res[ind] = log10lik*Math.log(10);
+
+        } catch (IOException e) {
+            e.printStackTrace();
+        }
+        return res;
+    }
 
 
     public void timeoutExp(int timeLimit, OptimizerType optimizerType, SolverType alg) throws IOException{
@@ -177,7 +248,8 @@ public class Exps{
         switch(alg){
             case WISH:
                 System.out.println("TimeoutExp: WISH");
-                params.timeLimit(timeLimit);
+                // params.timeLimit(timeLimit);
+                params.timeLimit(10);
                 Wish wish = new Wish(sampleSize, params);
                 res = this.timeoutExpAux(dataDir, wish);
                 outputPath += "wish";
