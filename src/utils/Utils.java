@@ -77,5 +77,40 @@ public class Utils {
         }
     }
 
+    public static double[] removeInf(double[] arr){
+        int i;
+        for(i=0; i<arr.length; i++){
+            if(!Double.isInfinite(arr[i]))
+                break;
+        }
+        if(i==0)
+            return arr;
+        else if (i==arr.length) {
+            return new double[]{Double.NEGATIVE_INFINITY};
+        }
+        return Arrays.copyOfRange(arr, i, arr.length);
+    }
+
+    public static double logSumExp(double ... arr){
+        double curmax = Double.NEGATIVE_INFINITY;
+        for(double a: arr)
+            curmax = a>curmax? a: curmax;
+        
+        double res = 0;
+        for(double a: arr){
+            res += Math.exp(a-curmax);
+        }
+        return Math.log(res)+curmax;
+    }
+
+    public static String mkdir(String name){
+        File dir = new File(name);
+        // if the directory does not exist, create it
+        if (!dir.exists()) {
+            try{ dir.mkdir(); } 
+            catch(Exception e){ e.printStackTrace();}        
+        }
+        return dir.getPath()+"/";
+    }
 
 }

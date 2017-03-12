@@ -1,24 +1,44 @@
 package code;
 
+import java.util.Random;
+
 public abstract class Code {
-	static public boolean[][] generate(CodeType codeType, int numVars, int numConstraint){
-		if(numVars==numConstraint){
+	static public boolean[][] generate(CodeType codeType, int numVars, int numConstraints){
+	    return Code.generate(codeType, numVars, numConstraints, false);
+	}
+
+	static public boolean[][] generate(CodeType codeType, int numVars, int numConstraints, boolean createDenseIfNull){
+		if(numVars==numConstraints){
 //			full dimension
 			return null;
 		}
+		boolean[][] res = null;
 		switch(codeType){
 			case DENSE:
-				return null;
+			    res = null;
+			    break;
 			case SPARSE:
 				Sparse c = new Sparse();
-				return c.generate(numVars, numConstraint);
+				res = c.generate(numVars, numConstraints);
+				break;
 			case PEG:
 				PEG p = new PEG();
-				return p.generate(numVars, numConstraint);
+				res = p.generate(numVars, numConstraints);
+				break;
 			default:
 				assert false;
 				return null;
 		}
+		if(res==null && createDenseIfNull){
+            res = new boolean[numConstraints][numVars];
+            Random rand = new Random();
+            for(int i=0;i<numConstraints;i++){
+                for(int j=0;j<numVars;j++){
+                    res[i][j]=rand.nextBoolean();
+                }
+            }
+		}
+		return res;
 	}
-	public  abstract boolean[][] generate(int numVars, int numConstraint);
+	public  abstract boolean[][] generate(int numVars, int numConstraints);
 }

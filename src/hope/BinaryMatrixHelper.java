@@ -435,9 +435,9 @@ public class BinaryMatrixHelper {
 	 * @return return y if y exists. o.w. return null
 	 */
 	public static boolean[] findFullSolution(boolean[] x, boolean[][] matrix){
-		System.out.println(matrix.length);
-		System.out.println(matrix[0].length);
-		System.out.println(x.length);
+		// System.out.println(matrix.length);
+		// System.out.println(matrix[0].length);
+		// System.out.println(x.length);
 		if(x==null || matrix==null){
 			return null;
 		}

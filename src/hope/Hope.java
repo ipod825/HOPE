@@ -1,5 +1,4 @@
 package hope;
-import java.util.Arrays;
 import java.util.Date;
 
 import problem.Ising;
@@ -41,15 +40,13 @@ public class Hope implements Solver{
 
         this.lsParams = new OptimizerParams(params);
         if(parallelLs){
-            if(optimizerType==OptimizerType.LS || optimizerType==OptimizerType.TWO_THIRD){
-                int oriTimeLimit = this.params.timeLimit();
-                assert sampleSize<=oriTimeLimit;  // Make sure the following for loop will run
-                for(int i=sampleSize; i<=oriTimeLimit; i++){
-                    if(oriTimeLimit%i == 0){
-                        lsParams.thread(i);
-                        lsParams.timeLimit(oriTimeLimit/i);
-                        break;
-                    }
+            int oriTimeLimit = this.params.timeLimit();
+            // assert sampleSize<=oriTimeLimit;  // Make sure the following for loop will run
+            for(int i=sampleSize; i<=oriTimeLimit; i++){
+                if(oriTimeLimit%i == 0){
+                    lsParams.thread(i);
+                    lsParams.timeLimit(oriTimeLimit/i);
+                    break;
                 }
             }
         }
@@ -88,45 +85,53 @@ public class Hope implements Solver{
 
 
         // No-constraint, only need to optimize once
-        estimates[0] = this.estimateQuantile(problem, 0, 1);
+        estimates[0] = this.estimateQuantile(problem, 0);
 
         if(this.earlyStop){
             estimates[fullDim] = estimateQuantile(problem, fullDim);
-            EarlyStopResult result = null;
+            // EarlyStopResult result = null;
             int progress=1;
-            while(! (result=earlyStop()).earlyStop()){
-                Interval current = result.intv;
-                int d = (current.end+current.start)/2;
+            while(true){
+                double[] logHighAreas = this.getLogHighAreas();
+                double[] logLowAreas = this.getLogLowAreas();
+                double logHighArea = Utils.logSumExp(logHighAreas);
+                double logLowArea = Utils.logSumExp(logLowAreas);
+
+                // A/B<3 => log(A)-lob(B)<log(3)
+                if(logHighArea-logLowArea<Math.log(2)){ 
+                    System.out.print(this.reportEstimates());
+                    // (A+B)/2 => log(A+B)-log(2)
+                    return Utils.logSumExp(logHighArea, logLowArea)-Math.log(2);
+                }
+
+                int d = this.binarySearch(logLowAreas, logHighAreas);
                 estimates[d] = this.estimateQuantile(problem, d);
                 System.out.printf("%d/%d estimated...\n", progress++, fullDim);
             }
-            System.out.print(this.reportEstimates());
-            return result.logEst;
         }
         else{
-            Parallel.For(1, fullDim+1, Parallel.iCPU/sampleSize, new LoopBody<Integer>(){
-                public void run(Integer c){
-                    estimates[c] = estimateQuantile(problem, c);
-                }
-            });
-            double curmax = estimates[0];
-            for(int i=1; i<fullDim+1; i++){
-                double term = estimates[i]+(i-1)*Math.log(2);
-                curmax = term>curmax? term: curmax;
-            }
-            double res = Math.exp(estimates[0]-curmax);
-            for(int i=1; i<fullDim+1; i++){
-                res += Math.exp(estimates[i]+(i-1)*Math.log(2)-curmax);
-            }
-            return Math.log(res)+curmax;
+            // if(this.optimizerType==OptimizerType.CPLEX){
+            //     Parallel.For(1, fullDim+1, Parallel.iCPU/sampleSize, new LoopBody<Integer>(){
+            //         public void run(Integer c){
+            //             estimates[c] = estimateQuantile(problem, c);
+            //         }
+            //     });
+            // }
+            // else{
+            //     for(int c=1; c<fullDim+1; c++)
+            //         estimates[c] = estimateQuantile(problem,c);
+            // }
+            for(int c=1; c<fullDim+1; c++)
+                estimates[c] = estimateQuantile(problem,c);
+            double[] logLowAreas = this.getLogLowAreas();
+            System.out.print(this.reportEstimates());
+            return Utils.logSumExp(logLowAreas);
         }
     }
     
     public double estimateQuantile(final Problem problem, final int numConstraint){
-        return this.estimateQuantile(problem, numConstraint, this.sampleSize);
-    }
-    public double estimateQuantile(final Problem problem, final int numConstraint, final int sampleSize){
         final int fullDim = problem.getNumVar();
+        final int sampleSize = numConstraint==0? 1 : this.sampleSize;
 
         final double[] samples = new double[sampleSize];
         final Optimizer[] optimizers = new Optimizer[sampleSize];
@@ -136,7 +141,7 @@ public class Hope implements Solver{
         System.out.print("Constraints: "+numConstraint+" ");
         optimizers[0].reportParams();
 
-        if(optimizers[0] instanceof LSOptimizer){
+        if(!(optimizers[0] instanceof CplexOptimizer)){
             // LocalSolver can not be parralized
             for(int i=0;i<sampleSize;i++){
                 samples[i] = optimizers[i].estimate(problem, numConstraint);
@@ -148,23 +153,10 @@ public class Hope implements Solver{
                 }
             });
         }
-        double[] nsamples = this.removeInf(samples);
+        double[] nsamples = Utils.removeInf(samples);
         return Utils.median(nsamples);
     }
 
-    public double[] removeInf(double[] arr){
-        int i;
-        for(i=0; i<arr.length; i++){
-            if(!Double.isInfinite(arr[i]))
-                break;
-        }
-        if(i==0)
-            return arr;
-        else if (i==arr.length) {
-            return new double[]{Double.NEGATIVE_INFINITY};
-        }
-        return Arrays.copyOfRange(arr, i, arr.length);
-    }
 
     public Optimizer getOptimizer(int fullDim, int reducedDim){
         OptimizerType optimizerType = this.optimizerType;
@@ -175,10 +167,17 @@ public class Hope implements Solver{
             else
                 optimizerType = OptimizerType.LS;
         }
-        if(optimizerType==OptimizerType.CPLEX)
-            return new CplexOptimizer(this.params);
-        else
-            return new LSOptimizer(this.lsParams);
+        switch (optimizerType) {
+            case CPLEX:
+                return new CplexOptimizer(this.params);
+            case LS:
+                return new LSOptimizer(this.lsParams);
+            case CLS:
+                return new CLSOptimizer(this.lsParams);
+            default:
+                assert false;
+                return null;
+        }
     }
 
 
@@ -199,21 +198,6 @@ public class Hope implements Solver{
         return sb.toString();
     }
 
-
-    class EarlyStopResult{
-        Interval intv;
-        double logEst;
-
-        public EarlyStopResult(Interval intv, double logEst){
-            this.intv=intv;
-            this.logEst=logEst;
-        }
-
-        public boolean earlyStop(){
-            return intv==null;
-        }
-    }
-
     class Interval{
         int start;
         int end;
@@ -231,7 +215,7 @@ public class Hope implements Solver{
         return logHeight + logWidth * Math.log(2);
     }
 
-    private EarlyStopResult earlyStop(){
+    double[] getLogHighAreas(){
         double[] logHighRectH= new double[estimates.length];
         logHighRectH[0] = estimates[0];
         for(int i=1;i<estimates.length;i++){
@@ -242,6 +226,14 @@ public class Hope implements Solver{
                 logHighRectH[i] = logHighRectH[i-1];
         }
 
+        double[] logHighAreas = new double[estimates.length];
+        logHighAreas[0] = this.calcLogArea(logHighRectH[0], 0);
+        for(int i=1; i<estimates.length; i++)
+            logHighAreas[i] = this.calcLogArea(logHighRectH[i], i-1);
+        return logHighAreas;
+    }
+
+    double[] getLogLowAreas(){
         double[] logLowRectH= new double[estimates.length];
         for(int i=estimates.length-1;i>=0;i--){
             if(!Double.isNaN(estimates[i]))
@@ -249,19 +241,19 @@ public class Hope implements Solver{
             else
                 logLowRectH[i] = logLowRectH[i+1];
         }
-
-        double[] logHighAreas = new double[estimates.length];
         double[] logLowAreas = new double[estimates.length];
-
-        logHighAreas[0] = this.calcLogArea(logHighRectH[0], 0);
-        for(int i=1; i<estimates.length; i++)
-            logHighAreas[i] = this.calcLogArea(logHighRectH[i], i-1);
-        
         logLowAreas[0] = this.calcLogArea(logLowRectH[0],0);
         for(int i=estimates.length-1;i>0;i--)
             logLowAreas[i] = this.calcLogArea(logLowRectH[i],i-1);
+        return logLowAreas;
+    }
 
-        
+    int binarySearch(double[] logLowAreas, double[] logHighAreas){
+    
+        double[] areaDiff = new double[logLowAreas.length];
+        for(int i=0; i<areaDiff.length; i++){
+            areaDiff[i] = Math.exp(logHighAreas[i]) - Math.exp(logLowAreas[i]);
+        }
         Interval maxDiffIntv = new Interval();
         Interval currentIntv = new Interval(Math.exp(logHighAreas[estimates.length-1])-Math.exp(logLowAreas[estimates.length-1]));
         currentIntv.end = estimates.length - 1;
@@ -277,40 +269,7 @@ public class Hope implements Solver{
             currentIntv.diff += Math.exp(logHighAreas[i])-Math.exp(logLowAreas[i]);
         }
 
-        // Interval maxDiffIntv = new Interval();
-        // Interval currentIntv = new Interval();
-        // currentIntv.start = 1;
-        // for(int i=1;i<=estimates.length-1;i++){
-        //     if(!Double.isNaN(estimates[i])){
-        //         currentIntv.end = i;
-        //         if(currentIntv.diff>maxDiffIntv.diff && currentIntv.end>currentIntv.start){
-        //             maxDiffIntv=currentIntv;
-        //         }
-        //         currentIntv = new Interval();
-        //         currentIntv.start = i+1;
-        //     }
-        //     currentIntv.diff += Math.exp(logHighAreas[i])-Math.exp(logLowAreas[i]);
-        // }
-
-        double logHighArea = logSumExp(logHighAreas);
-        double logLowArea = logSumExp(logLowAreas);
-        // A/B<3 => log(A)-lob(B)<log(3)
-        if(logHighArea-logLowArea<Math.log(3)){ 
-            // (A+B)/2 => log(A+B)-log(2)
-            return new EarlyStopResult(null,logSumExp(logHighArea, logLowArea)-Math.log(2));
-        }
-        return new EarlyStopResult(maxDiffIntv,0);
-    }
-
-    public double logSumExp(double ... arr){
-        double curmax = Double.NEGATIVE_INFINITY;
-        for(double a: arr)
-            curmax = a>curmax? a: curmax;
-        
-        double res = 0;
-        for(double a: arr){
-            res += Math.exp(a-curmax);
-        }
-        return Math.log(res)+curmax;
+        int d = (maxDiffIntv.end+maxDiffIntv.start)/2;
+        return d;
     }
 }

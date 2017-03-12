@@ -5,7 +5,7 @@ import os
 import timeit
 import config
 from config import SolverType
-from libdai_solver import JunctionTree
+from libdai_solver import JunctionTree, MF, TRWBP
 from wish_solver import Wish
 import argparse
 import math
@@ -18,7 +18,7 @@ def parse_arg():
     parser.add_argument("solver_type", type=int, help="SolverType:"+listEnum(SolverType))
     parser.add_argument("-s", "--samplesize", type=int, default=7, help="Saplesize per quantile.")
     parser.add_argument("-t", "--timeout", type=int, default=10, help="Timeout for optimization.")
-    parser.add_argument("-o", "--outfolder", default=config.output_dir, help="Directory where output are stored")
+    parser.add_argument("-o", "--outdir", default=config.output_dir, help="Directory where output are stored")
     return parser.parse_args()
 
 if __name__ == '__main__':
@@ -29,13 +29,17 @@ if __name__ == '__main__':
     isLog = True
     if solver_type == SolverType.JT:
         solver = JunctionTree()
+    elif solver_type == SolverType.MF:
+        solver = MF()
+    elif solver_type == SolverType.TRWBP:
+        solver = TRWBP()
     elif solver_type == SolverType.WISH:
         solver = Wish(samplesize=args.samplesize, timeout=args.timeout)
     else:
         isLog = False
 
-    output_path = os.path.join(config.output_dir,solver.__class__.__name__)
-    if solver_type!=SolverType.JT:
+    output_path = os.path.join(args.outdir,solver.__class__.__name__)
+    if solver_type==SolverType.WISH:
         output_path += '_'+str(timeout)
 
     # empty the file ifit exists
@@ -53,4 +57,5 @@ if __name__ == '__main__':
             res = math.log(res)
         output = open(output_path, 'a')
         output.write('{},{},{}\n'.format(os.path.basename(path), res, stop - start))
+        print '{},{},{}\n'.format(os.path.basename(path), res, stop - start)
         output.close()

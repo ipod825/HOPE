@@ -6,4 +6,5 @@ bin
 *.o
 tmp/*
 log*
-output/*
+.Rhistory
+workbench.xmi

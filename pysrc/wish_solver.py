@@ -26,8 +26,7 @@ class Wish(object):
         self.log_dir = log_dir
         self.alpha = alpha
         self.delta = delta
-        self.parallel = True
-        # self.parallel = False
+        self.parallel = False
 
     def solve(self, path):
         WH_cplex = '../thirdparty/WishCplex/goodWH_cplex'

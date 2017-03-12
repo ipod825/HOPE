@@ -1,5 +1,5 @@
 package hope;
 
 public enum OptimizerType {
-	CPLEX,LS,TWO_THIRD
+	CPLEX,LS,TWO_THIRD,CLS
 }

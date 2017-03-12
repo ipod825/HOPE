@@ -3,8 +3,6 @@ import java.util.Random;
 
 import problem.Problem;
 
-import code.CodeType;
-
 import localsolver.LSExpression;
 import localsolver.LSModel;
 import localsolver.LSObjectiveDirection;
@@ -79,7 +77,7 @@ public class LSOptimizer extends Optimizer{
 	}
 	
 	
-	private LSProblem loadProblem(Problem problem, LSModel model, int fullDim, int reducedDim){
+	protected LSProblem loadProblem(Problem problem, LSModel model, int fullDim, int reducedDim){
 		LSExpression[] x = null;
 		Variables variables = null;
 		LSExpression objective = model.createExpression(LSOperator.Sum);
@@ -101,7 +99,7 @@ public class LSOptimizer extends Optimizer{
 	}
 
 	
-	private LSExpression createIfTree(LSModel model, LSExpression[] x, int[] funcVars, int varIdx, int valIdx, double[] funcVals){
+	protected LSExpression createIfTree(LSModel model, LSExpression[] x, int[] funcVars, int varIdx, int valIdx, double[] funcVals){
 		int len = funcVars.length;
 		int positiveIdx = (int) (valIdx + Math.pow(2,len-varIdx-1));
 		if(varIdx==len-1){
@@ -159,17 +157,8 @@ public class LSOptimizer extends Optimizer{
 		
 		LSExpression[] x = new LSExpression[fullDim];
 		
-		boolean matrix[][]=null;;
-		if(this.params.codeType()==CodeType.PEG){
-			boolean[][] parity = LDPCTools.getPEGMatrix(fullDim, fullDim-reducedDim, false);
-			if(parity != null){
-				matrix = BinaryMatrixHelper.parityToGenerator(parity);	
-			}
-		}
-		if(matrix == null){
-			matrix = BinaryMatrixHelper.getFullRankMatrix(fullDim);
-			BinaryMatrixHelper.gaussJordanElimination(matrix, reducedDim);
-		}
+		boolean[][] matrix = BinaryMatrixHelper.getFullRankMatrix(fullDim);
+        BinaryMatrixHelper.gaussJordanElimination(matrix, reducedDim);
 		
 		for(int i=0;i<x.length;i++){
 			x[i] = model.createExpression(LSOperator.Xor);
@@ -188,7 +177,7 @@ public class LSOptimizer extends Optimizer{
 		return new Variables(x,y);
 	}
 
-	private Variables createVar(LSModel model, int fullDim){
+	protected Variables createVar(LSModel model, int fullDim){
 		LSExpression[] x = new LSExpression[fullDim];
 		for (int i = 0; i < x.length; i++){ 
 			x[i] = model.createExpression(LSOperator.Bool);

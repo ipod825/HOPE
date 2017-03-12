@@ -6,9 +6,22 @@ import java.util.Random;
 
 public class GridGenerator {
 	Random rand = new Random();
+
+    public static void main(String args[]) {
+        GridGenerator g = new GridGenerator();
+        // double[] fs = new double[]{0.1};
+        // double[] ws = new double[]{0.25,0.5,0.75,1.0,1.25,1.50,1.75,2.0,2.25,2.5,2.75,3.0};
+        // for (double f : fs) {
+        //    for (double w : ws) {
+        //         g.generateGridModel(20, Config.rootDir+"problems/Grids20/", f, w, true);
+        //    } 
+        // }
+        
+        g.generateGridModel(20, Config.rootDir+"problems/timeout20/", 0.1, 1.0, true);
+    }
 	
 	public void generateGridModel(int size, String outputFolder, double field, double strength, boolean mixed){
-		String outputPath = outputFolder+"grid_"+(mixed?"mixed":"attractive")+"_n"+size+"_c"+strength+"_f"+field+".uai";
+		String outputPath = outputFolder+"grid_"+(mixed?"mixed":"attractive")+"_n"+size+"_w"+strength+"_f"+field+".uai";
 		String evidPath = outputPath + ".evid";
 		int numVars = size*size;
 		int numEdges = (4*2+(size-2)*(size-2)*4+(4*size-8)*3)/2;
